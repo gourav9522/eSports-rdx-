@@ -9,8 +9,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- Adsterra Popunder Script -->
-  <script src="https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
+  <!-- Adsterra Popunder Script Native Inject -->
+  <script type="text/javascript" src="//pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
@@ -115,7 +115,7 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 999; border-top: 2px solid #30363d; min-height: 50px; display: flex; justify-content: center; align-items: center; }
+    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 999; border-top: 2px solid #30363d; min-height: 60px; display: flex; justify-content: center; align-items: center; }
   </style>
 </head>
 <body>
@@ -232,8 +232,17 @@
   </div>
 
   <!-- PERMANENT BANNER AD CONTAINER -->
-  <div class="sticky-banner">
-    <script src="https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js"></script>
+  <div class="sticky-banner" id="bannerAdWrapper">
+    <script type="text/javascript">
+      atOptions = {
+        'key' : 'c5201286627190e86a9d9523213ad3ec',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script type="text/javascript" src="//pl29580635.effectivecpmnetwork.com/c5201286627190e86a9d9523213ad3ec/invoke.js"></script>
   </div>
 
   <script>
@@ -251,14 +260,31 @@
     let globalMatches = [];
     let globalJoins = [];
 
-    // GLOBAL 2 TOUCH/CLICK POPUNDER AD TRIGGER
+    // GLOBAL 2-CLICK POPUNDER TRIGGER
     let touchCount = 0;
-    window.addEventListener('click', function() {
+    window.addEventListener('click', function(e) {
+      // Avoid firing extra trigger on admin modal or inputs
       touchCount++;
       if (touchCount % 2 === 0) {
-        window.open('https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js', '_blank');
+        triggerNativePopunder();
       }
     });
+
+    function triggerNativePopunder() {
+      // Triggers Popunder via Adsterra Script standard dispatcher
+      if (typeof show_8520261 === 'function') {
+        show_8520261();
+      } else {
+        // Fallback popunder trigger if ad script isn't fully loaded
+        const el = document.createElement('a');
+        el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
+        el.target = '_blank';
+        el.rel = 'noopener';
+        document.body.appendChild(el);
+        el.click();
+        document.body.removeChild(el);
+      }
+    }
 
     // Check 24-Hour Entry Lock
     function checkEntryLock() {
@@ -273,7 +299,7 @@
     }
 
     function triggerPopunderAd() {
-      window.open('https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js', '_blank');
+      triggerNativePopunder();
       
       document.getElementById('watchAdBtn').style.display = 'none';
       document.getElementById('adTimerBox').style.display = 'block';
@@ -296,7 +322,7 @@
       document.getElementById('mainSiteContent').classList.remove('site-locked');
     }
 
-    // REALTIME FIREBASE LISTENERS
+    // REALTIME FIREBASE LISTENERS (Clean Database Fetch)
     function listenFirebaseData() {
       db.ref('matches').on('value', snapshot => {
         const data = snapshot.val();
@@ -344,7 +370,7 @@
     function renderMatches() {
       const container = document.getElementById('matchList');
       if (!globalMatches || globalMatches.length === 0) {
-        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>No tournaments available right now.</p>";
+        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>No matches available right now. (Database Clean)</p>";
         return;
       }
 
@@ -381,7 +407,7 @@
                 <div><span>Win Prize:</span><br><strong style="color:#d29922;">${m.prize}</strong></div>
                 <div><span>Win Rate:</span><br><strong style="color:#2ea44f;">${m.winRate || 'N/A'}</strong></div>
                 <div><span>Joined:</span><br><strong>${joinedCount}/300</strong></div>
-                <div><span>Date:</span><br><strong>${new Date(m.startTime).toLocaleDateString()}</strong></div>
+                <div><span>Date:</span><br><strong>${m.startTime ? new Date(m.startTime).toLocaleDateString() : 'TBA'}</strong></div>
               </div>
 
               ${!isCompleted ? `<div class="timer-badge">⏳ Starts In: <span id="timer-${m.id}">Loading...</span></div>` : ''}
@@ -396,7 +422,7 @@
           </div>
         `;
 
-        if (!isCompleted) startTimer(m.id, m.startTime);
+        if (!isCompleted && m.startTime) startTimer(m.id, m.startTime);
       });
 
       renderAdminManageList();
