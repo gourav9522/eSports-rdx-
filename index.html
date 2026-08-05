@@ -9,9 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- Adsterra Popunder Base Script -->
-  <script type="text/javascript" src="//pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
     
@@ -114,7 +111,6 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    /* STICKY BANNER AD CONTAINER */
     .sticky-banner { 
       position: fixed; 
       bottom: 0; 
@@ -267,27 +263,17 @@
 
     const defaultBannerImg = "data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\' viewBox=\'0 0 800 400\'><rect width=\'100%\' height=\'100%\' fill=\'%23161b22\'/><text x=\'50%\' y=\'45%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'38\' font-weight=\'bold\' fill=\'%23d29922\' font-family=\'sans-serif\'>eSports RDX</text><text x=\'50%\' y=\'60%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'22\' fill=\'%232ea44f\' font-family=\'sans-serif\'>FREE FIRE TOURNAMENT</text></svg>";
 
-    // TRIGGER POPUNDER ENGINE
-    function triggerNativePopunder() {
-      const el = document.createElement('a');
-      el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
-      el.target = '_blank';
-      el.rel = 'noopener';
-      document.body.appendChild(el);
-      el.click();
-      document.body.removeChild(el);
+    // STRICT 1-TIME POPUNDER TRIGGER ENGINE
+    function triggerStrictSinglePopunder() {
+      const isAlreadyShown = sessionStorage.getItem('global_popunder_shown');
+      if (!isAlreadyShown) {
+        sessionStorage.setItem('global_popunder_shown', 'true');
+        window.open('https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f', '_blank');
+      }
     }
 
-    // GENERIC BUTTON AD TRACKER (1 TIME PER BUTTON TYPE PER MATCH)
-    function handleButtonAdAction(actionType, matchId, callback) {
-      const storageKey = `ad_shown_${actionType}_${matchId}`;
-      const isAdShown = sessionStorage.getItem(storageKey);
-
-      if (!isAdShown) {
-        sessionStorage.setItem(storageKey, 'true');
-        triggerNativePopunder();
-      }
-
+    function handleButtonAdAction(callback) {
+      triggerStrictSinglePopunder();
       if (typeof callback === 'function') {
         callback();
       }
@@ -328,7 +314,7 @@
     }
 
     function triggerPopunderAd() {
-      triggerNativePopunder();
+      triggerStrictSinglePopunder();
       
       document.getElementById('watchAdBtn').style.display = 'none';
       document.getElementById('adTimerBox').style.display = 'block';
@@ -419,7 +405,7 @@
         } else if (joinedCount >= 300) {
           actionBtnHtml = `<button class="btn btn-disabled" disabled>Match Full</button>`;
         } else {
-          actionBtnHtml = `<button class="btn btn-success" onclick="handleButtonAdAction('join', '${m.id}', () => openJoinModal('${m.id}'))">🚀 Join Free</button>`;
+          actionBtnHtml = `<button class="btn btn-success" onclick="handleButtonAdAction(() => openJoinModal('${m.id}'))">🚀 Join Free</button>`;
         }
 
         const bannerSrc = (m.photo && m.photo.trim() !== "") ? m.photo : defaultBannerImg;
@@ -445,9 +431,9 @@
 
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 ${actionBtnHtml}
-                <button class="btn btn-warning" onclick="handleButtonAdAction('details', '${m.id}', () => showJoinedDetails('${m.id}'))">📋 Details</button>
-                <button class="btn btn-info" onclick="handleButtonAdAction('room', '${m.id}', () => showRoomCredentials('${m.roomId}', '${m.roomPass}'))">🔑 Room Credentials</button>
-                ${m.live ? `<button class="btn btn-danger" onclick="handleButtonAdAction('live', '${m.id}', () => window.open('${m.live}', '_blank'))">▶ Live</button>` : ''}
+                <button class="btn btn-warning" onclick="handleButtonAdAction(() => showJoinedDetails('${m.id}'))">📋 Details</button>
+                <button class="btn btn-info" onclick="handleButtonAdAction(() => showRoomCredentials('${m.roomId}', '${m.roomPass}'))">🔑 Room Credentials</button>
+                ${m.live ? `<button class="btn btn-danger" onclick="handleButtonAdAction(() => window.open('${m.live}', '_blank'))">▶ Live</button>` : ''}
               </div>
             </div>
           </div>
