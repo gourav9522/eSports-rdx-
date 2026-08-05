@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>eSports RDX - Free Fire Tournaments</title>
   
+  <!-- Firebase Core & Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <!-- Adsterra Popunder Script -->
   <script src="https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
 
@@ -14,7 +18,7 @@
     body { 
       background: #0b0e14; 
       color: #e6edf3; 
-      padding-bottom: 80px; 
+      padding-bottom: 90px; 
       position: relative;
       min-height: 100vh;
     }
@@ -72,7 +76,7 @@
     .container { max-width: 500px; margin: 15px auto; padding: 0 12px; }
 
     .site-locked {
-      filter: blur(8px);
+      filter: blur(10px);
       pointer-events: none;
       user-select: none;
     }
@@ -83,6 +87,7 @@
     .btn-danger { background: linear-gradient(135deg, #da3633, #b62324); color: #fff; box-shadow: 0 4px 10px rgba(218,54,51,0.3); }
     .btn-primary { background: linear-gradient(135deg, #1f6feb, #1158c7); color: #fff; box-shadow: 0 4px 10px rgba(31,111,235,0.3); }
     .btn-warning { background: linear-gradient(135deg, #d29922, #b07d19); color: #000; font-weight: 900; box-shadow: 0 4px 10px rgba(210,153,34,0.3); }
+    .btn-info { background: linear-gradient(135deg, #a371f7, #8957e5); color: #fff; box-shadow: 0 4px 10px rgba(163,113,247,0.3); }
     .btn-disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
 
     input, select { width: 100%; padding: 11px; margin: 6px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; outline: none; font-size: 14px; }
@@ -108,21 +113,21 @@
     .players-list { max-height: 220px; overflow-y: auto; background: #0d1117; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border: 1px solid #30363d; }
     .player-row { padding: 8px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
 
-    .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
     .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 99; border-top: 2px solid #30363d; min-height: 50px; display: flex; justify-content: center; align-items: center; }
   </style>
 </head>
 <body>
 
-  <!-- ENTRY 24-HOUR AD LOCK MODAL -->
+  <!-- 1. ENTRY 24-HOUR AD LOCK MODAL -->
   <div class="modal-overlay" id="adModal" style="display:flex;">
     <div class="modal-box" style="text-align: center;">
       <h3 style="color:#d29922; margin-bottom:8px;">🔥 Welcome to eSports RDX</h3>
-      <p style="font-size:13px; color:#8b949e; margin-bottom:15px;">Site access unlock karne ke liye ad dekhein (Valid for 24 Hours).</p>
+      <p style="font-size:13px; color:#8b949e; margin-bottom:15px;">Site ke sabhi tournaments unlocked karne ke liye niche button par click karein (Valid for 24 Hours).</p>
       
-      <div id="adTimerBox" style="display:none; font-size:17px; font-weight:bold; color:#da3633; margin:15px 0; background:#0d1117; padding:10px; border-radius:8px;">
-        ⏳ Timer Running: <span id="timerSec">7</span> sec...
+      <div id="adTimerBox" style="display:none; font-size:17px; font-weight:bold; color:#da3633; margin:15px 0; background:#0d1117; padding:10px; border-radius:8px; border: 1px solid #da3633;">
+        ⏳ Ad Viewing Timer: <span id="timerSec">7</span>s
       </div>
 
       <button class="btn btn-warning" id="watchAdBtn" onclick="triggerPopunderAd()">📺 Watch Ad & Unlock</button>
@@ -130,7 +135,7 @@
     </div>
   </div>
 
-  <!-- MAIN CONTAINER -->
+  <!-- MAIN SITE CONTENT CONTAINER -->
   <div id="mainSiteContent" class="site-locked">
     <header>
       <div class="brand-logo-title" ondblclick="openAdminModal()">
@@ -141,12 +146,12 @@
 
     <div class="container">
       <div id="matchList">
-        <p style="text-align:center; color:#8b949e; margin-top:30px;">Loading eSports RDX Matches...</p>
+        <p style="text-align:center; color:#8b949e; margin-top:30px;">Connecting Live Database...</p>
       </div>
     </div>
   </div>
 
-  <!-- JOIN MATCH FORM MODAL -->
+  <!-- 2. DIRECT JOIN MATCH FORM MODAL -->
   <div class="modal-overlay" id="joinModal">
     <div class="modal-box">
       <h3 style="color:#2ea44f; margin-bottom:12px;">🎮 Enter Free Fire Details</h3>
@@ -165,7 +170,7 @@
     </div>
   </div>
 
-  <!-- JOINED PLAYERS DETAILS MODAL -->
+  <!-- 3. JOINED PLAYER DETAILS MODAL -->
   <div class="modal-overlay" id="detailsModal">
     <div class="modal-box">
       <h3 style="color:#58a6ff; margin-bottom:10px;">📋 Joined Players</h3>
@@ -174,7 +179,21 @@
     </div>
   </div>
 
-  <!-- SECRET ADMIN MODAL (PASSWORD: 9522) -->
+  <!-- 4. ROOM ID & PASS SHOW MODAL FOR PLAYERS -->
+  <div class="modal-overlay" id="roomDetailsModal">
+    <div class="modal-box" style="text-align:center;">
+      <h3 style="color:#a371f7; margin-bottom:10px;">🔑 Custom Room Details</h3>
+      <div style="background:#0d1117; padding:15px; border-radius:10px; border:1px solid #30363d; margin: 10px 0;">
+        <p style="color:#8b949e; font-size:12px;">Room ID:</p>
+        <h2 style="color:#d29922; margin-bottom:10px;" id="dispRoomId">Not Set</h2>
+        <p style="color:#8b949e; font-size:12px;">Room Password:</p>
+        <h2 style="color:#2ea44f;" id="dispRoomPass">Not Set</h2>
+      </div>
+      <button class="btn btn-danger" onclick="closeModal('roomDetailsModal')">Close</button>
+    </div>
+  </div>
+
+  <!-- 5. SECRET ADMIN MODAL (PASSWORD: 9522) -->
   <div class="modal-overlay" id="adminModal">
     <div class="modal-box">
       <div id="adminAuth">
@@ -191,33 +210,45 @@
         <input type="text" id="mPrize" placeholder="Win Prize (e.g. ₹500)">
         <input type="text" id="mWinRate" placeholder="Win Rate (e.g. 85%)">
         <input type="datetime-local" id="mTime">
+        
+        <input type="text" id="mRoomId" placeholder="Room ID (e.g. 849201)">
+        <input type="text" id="mRoomPass" placeholder="Room Password (e.g. 1234)">
+
         <input type="text" id="mLive" placeholder="Live Stream URL (YouTube)">
-        <input type="text" id="mPhoto" placeholder="Match Banner Image Direct URL">
+        <input type="text" id="mPhoto" placeholder="Banner Image Direct URL">
 
         <button class="btn btn-success" onclick="createMatch()">Publish Live Match</button>
         
-        <h4 style="color:#58a6ff; margin:15px 0 8px 0; border-top:1px solid #30363d; padding-top:10px;">🛠️ Manage Matches</h4>
-        <div id="adminMatchManageList" style="max-height:160px; overflow-y:auto;"></div>
+        <h4 style="color:#58a6ff; margin:15px 0 8px 0; border-top:1px solid #30363d; padding-top:10px;">🛠️ Manage Matches & Update Room Details</h4>
+        <div id="adminMatchManageList" style="max-height:200px; overflow-y:auto;"></div>
 
         <button class="btn btn-danger" onclick="logoutAdmin()" style="margin-top:10px;">Logout Admin</button>
       </div>
     </div>
   </div>
 
-  <!-- Sticky Footer Adsterra Banner -->
+  <!-- PERMANENT BANNER AD -->
   <div class="sticky-banner">
     <script src="https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js"></script>
   </div>
 
   <script>
-    const GH_USERNAME = "gourav9522";
-    const GH_REPO = "Mine-money-";
-    const GH_TOKEN = "Ghp_qCLdcD1ihW9u3jcx37C5U600UnKgtt2WZyaY";
+    // FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
 
     let selectedMatchId = null;
     let globalMatches = [];
     let globalJoins = [];
 
+    // Check 24-Hour Entry Lock
     function checkEntryLock() {
       const lastUnlock = localStorage.getItem('ad_lock_time');
       if (lastUnlock && (Date.now() - parseInt(lastUnlock)) < 24 * 60 * 60 * 1000) {
@@ -230,7 +261,7 @@
     }
 
     function triggerPopunderAd() {
-      window.open('https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js', '_blank');
+      window.open('https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js', '_blank');
       
       document.getElementById('watchAdBtn').style.display = 'none';
       document.getElementById('adTimerBox').style.display = 'block';
@@ -253,43 +284,18 @@
       document.getElementById('mainSiteContent').classList.remove('site-locked');
     }
 
-    async function loadLiveData() {
-      try {
-        const matchRes = await fetch(`https://raw.githubusercontent.com/${GH_USERNAME}/${GH_REPO}/main/matches.json?v=${Date.now()}`);
-        globalMatches = await matchRes.json();
-
-        const joinRes = await fetch(`https://raw.githubusercontent.com/${GH_USERNAME}/${GH_REPO}/main/joins.json?v=${Date.now()}`);
-        globalJoins = await joinRes.json();
-
+    // REALTIME FIREBASE LISTENERS (Auto Sync Across All Phones)
+    function listenFirebaseData() {
+      db.ref('matches').on('value', snapshot => {
+        const data = snapshot.val();
+        globalMatches = data ? Object.values(data) : [];
         renderMatches();
-      } catch (e) {
+      });
+
+      db.ref('joins').on('value', snapshot => {
+        const data = snapshot.val();
+        globalJoins = data ? Object.values(data) : [];
         renderMatches();
-      }
-    }
-
-    async function saveToGitHub(filename, data) {
-      const url = `https://api.github.com/repos/${GH_USERNAME}/${GH_REPO}/contents/${filename}`;
-      let sha = "";
-
-      try {
-        const res = await fetch(url, { headers: { Authorization: `token ${GH_TOKEN}` } });
-        const fileData = await res.json();
-        sha = fileData.sha;
-      } catch (e) {}
-
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-
-      await fetch(url, {
-        method: 'PUT',
-        headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: `Update ${filename}`,
-          content: content,
-          sha: sha || undefined
-        })
       });
     }
 
@@ -351,9 +357,10 @@
 
               ${!isCompleted ? `<div class="timer-badge">⏳ Starts In: <span id="timer-${m.id}">Loading...</span></div>` : ''}
 
-              <div style="display:flex; gap:6px; margin-top:10px;">
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 ${actionBtnHtml}
                 <button class="btn btn-warning" onclick="showJoinedDetails('${m.id}')">📋 Details</button>
+                <button class="btn btn-info" onclick="showRoomCredentials('${m.roomId}', '${m.roomPass}')">🔑 Room Credentials</button>
                 ${m.live ? `<a href="${m.live}" target="_blank" class="btn btn-danger" style="text-decoration:none; text-align:center; padding-top:11px;">▶ Live</a>` : ''}
               </div>
             </div>
@@ -377,13 +384,17 @@
 
       container.innerHTML = globalMatches.map(m => `
         <div class="admin-match-item">
-          <div>
-            <strong style="font-size:13px; color:#fff;">${m.title}</strong>
-            <div style="font-size:11px; color:#8b949e;">ID: ${m.id}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px; color:#fff;">${m.title} (${m.id})</strong>
+            <div>
+              <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="toggleCompleteMatch('${m.id}')">${m.isCompleted ? 'Undo' : '✔ Tick'}</button>
+              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="deleteMatch('${m.id}')">🗑 Delete</button>
+            </div>
           </div>
-          <div style="display:flex; gap:4px;">
-            <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="toggleCompleteMatch('${m.id}')">${m.isCompleted ? 'Undo' : '✔ Tick'}</button>
-            <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="deleteMatch('${m.id}')">🗑 Delete</button>
+          <div style="display:flex; gap:4px; margin-top:4px;">
+            <input type="text" id="updateRid-${m.id}" placeholder="Room ID" value="${m.roomId || ''}" style="padding:5px; font-size:12px; margin:0;">
+            <input type="text" id="updateRpass-${m.id}" placeholder="Room Pass" value="${m.roomPass || ''}" style="padding:5px; font-size:12px; margin:0;">
+            <button class="btn btn-success" style="padding:5px 8px; font-size:11px; margin-top:0; width:auto;" onclick="updateRoomInfo('${m.id}')">Save</button>
           </div>
         </div>
       `).join('');
@@ -414,7 +425,7 @@
       document.getElementById('joinModal').style.display = 'flex';
     }
 
-    async function submitJoinForm() {
+    function submitJoinForm() {
       const ffName = document.getElementById('ffName').value.trim();
       const ffUid = document.getElementById('ffUid').value.trim();
       const ffUpi = document.getElementById('ffUpi').value.trim();
@@ -422,10 +433,11 @@
       if (!ffName || !ffUid || !ffUpi) return alert("Sabhi details fill karein!");
 
       const joinObj = { matchId: selectedMatchId, ffName, ffUid, ffUpi, time: new Date().toLocaleString() };
-      globalJoins.push(joinObj);
+      
+      // Save directly to Firebase
+      db.ref('joins').push(joinObj);
 
       markMatchAsJoined(selectedMatchId);
-      renderMatches();
       closeModal('joinModal');
 
       document.getElementById('ffName').value = '';
@@ -433,8 +445,6 @@
       document.getElementById('ffUpi').value = '';
 
       alert("Match Successfully Joined!");
-      
-      await saveToGitHub('joins.json', globalJoins);
     }
 
     function showJoinedDetails(matchId) {
@@ -452,6 +462,12 @@
         `).join('');
       }
       document.getElementById('detailsModal').style.display = 'flex';
+    }
+
+    function showRoomCredentials(rId, rPass) {
+      document.getElementById('dispRoomId').innerText = (rId && rId !== 'undefined' && rId.trim() !== '') ? rId : 'Will Update Soon';
+      document.getElementById('dispRoomPass').innerText = (rPass && rPass !== 'undefined' && rPass.trim() !== '') ? rPass : 'Will Update Soon';
+      document.getElementById('roomDetailsModal').style.display = 'flex';
     }
 
     function openAdminModal() { document.getElementById('adminModal').style.display = 'flex'; }
@@ -474,13 +490,16 @@
       document.getElementById('adminControls').style.display = 'none';
     }
 
-    async function createMatch() {
+    function createMatch() {
+      const matchId = document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4);
       const matchObj = {
-        id: document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4),
+        id: matchId,
         title: document.getElementById('mTitle').value,
         prize: document.getElementById('mPrize').value,
         winRate: document.getElementById('mWinRate').value,
         startTime: document.getElementById('mTime').value,
+        roomId: document.getElementById('mRoomId').value,
+        roomPass: document.getElementById('mRoomPass').value,
         live: document.getElementById('mLive').value,
         photo: document.getElementById('mPhoto').value,
         isCompleted: false
@@ -488,33 +507,39 @@
 
       if (!matchObj.title || !matchObj.startTime) return alert("Title aur Time zaroori hai!");
 
-      globalMatches.unshift(matchObj);
-      renderMatches();
-      closeModal('adminModal');
+      // Save to Firebase Database
+      db.ref('matches/' + matchId).set(matchObj);
       
-      alert("Match Publish ho gaya!");
-
-      await saveToGitHub('matches.json', globalMatches);
+      closeModal('adminModal');
+      alert("Match Published Real-time!");
     }
 
-    async function toggleCompleteMatch(matchId) {
-      const idx = globalMatches.findIndex(m => m.id === matchId);
-      if (idx !== -1) {
-        globalMatches[idx].isCompleted = !globalMatches[idx].isCompleted;
-        renderMatches();
-        await saveToGitHub('matches.json', globalMatches);
+    function updateRoomInfo(matchId) {
+      const newRid = document.getElementById(`updateRid-${matchId}`).value;
+      const newRpass = document.getElementById(`updateRpass-${matchId}`).value;
+
+      db.ref(`matches/${matchId}`).update({
+        roomId: newRid,
+        roomPass: newRpass
+      });
+
+      alert("Room ID & Password Updated Real-Time!");
+    }
+
+    function toggleCompleteMatch(matchId) {
+      const m = globalMatches.find(item => item.id === matchId);
+      if (m) {
+        db.ref(`matches/${matchId}`).update({ isCompleted: !m.isCompleted });
       }
     }
 
-    async function deleteMatch(matchId) {
+    function deleteMatch(matchId) {
       if (!confirm("Is match ko delete karna chahte hain?")) return;
-      globalMatches = globalMatches.filter(m => m.id !== matchId);
-      renderMatches();
-      await saveToGitHub('matches.json', globalMatches);
+      db.ref(`matches/${matchId}`).remove();
     }
 
     checkEntryLock();
-    loadLiveData();
+    listenFirebaseData();
   </script>
 
 </body>
