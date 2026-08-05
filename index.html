@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>eSports RDX - Free Fire Tournaments</title>
   
-  <!-- Firebase Core & Database SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  <!-- Adsterra Popunder Script Native Inject -->
+  <!-- Adsterra Popunder Base Script -->
   <script type="text/javascript" src="//pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
 
   <style>
@@ -115,20 +115,26 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
+    /* STICKY BANNER AD CONTAINER FIX */
     .sticky-banner { 
       position: fixed; 
       bottom: 0; 
       left: 0; 
       width: 100%; 
-      background: #161b22; 
+      background: #0d1117; 
       text-align: center; 
       z-index: 999; 
       border-top: 2px solid #30363d; 
-      min-height: 60px; 
+      height: 60px; 
       display: flex; 
       justify-content: center; 
       align-items: center;
       overflow: hidden;
+    }
+    
+    .sticky-banner iframe {
+      margin: 0 auto !important;
+      display: block !important;
     }
   </style>
 </head>
@@ -245,18 +251,9 @@
     </div>
   </div>
 
-  <!-- PERMANENT BANNER AD CONTAINER -->
+  <!-- FIXED PERMANENT BANNER AD CONTAINER -->
   <div class="sticky-banner" id="bannerAdContainer">
-    <script type="text/javascript">
-      atOptions = {
-        'key' : 'c5201286627190e86a9d9523213ad3ec',
-        'format' : 'iframe',
-        'height' : 50,
-        'width' : 320,
-        'params' : {}
-      };
-    </script>
-    <script type="text/javascript" src="//pl29580635.effectivecpmnetwork.com/c5201286627190e86a9d9523213ad3ec/invoke.js"></script>
+    <div id="adsterra_banner_wrapper"></div>
   </div>
 
   <script>
@@ -276,14 +273,19 @@
 
     const defaultBannerImg = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800";
 
-    // GLOBAL CLICK LISTENER FOR POPUNDER (IGNORING ADMIN PANEL)
-    let touchCount = 0;
+    // STRICT 2-CLICK POPUNDER LOGIC
+    sessionStorage.setItem('userClickCounter', '0');
+
     window.addEventListener('click', function(e) {
-      // Check if click was inside Admin Modal or Modals
+      // Ignore clicks on admin modal or inputs
       if (e.target.closest('#adminModal')) return;
-      
-      touchCount++;
-      if (touchCount % 2 === 0) {
+
+      let currentClicks = parseInt(sessionStorage.getItem('userClickCounter') || '0');
+      currentClicks++;
+      sessionStorage.setItem('userClickCounter', currentClicks.toString());
+
+      // Trigger ONLY on 2nd Click (Strict Every 2 Clicks)
+      if (currentClicks % 2 === 0) {
         triggerNativePopunder();
       }
     });
@@ -300,6 +302,26 @@
       document.body.appendChild(el);
       el.click();
       document.body.removeChild(el);
+    }
+
+    // DYNAMIC BANNER INJECTION FIX
+    function loadAdsterraBanner() {
+      const bannerContainer = document.getElementById('adsterra_banner_wrapper');
+      if (!bannerContainer) return;
+
+      window.atOptions = {
+        'key' : 'c5201286627190e86a9d9523213ad3ec',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+
+      const s = document.createElement('script');
+      s.type = 'text/javascript';
+      s.src = '//pl29580635.effectivecpmnetwork.com/c5201286627190e86a9d9523213ad3ec/invoke.js';
+      
+      bannerContainer.appendChild(s);
     }
 
     // Check 24-Hour Entry Lock
@@ -338,7 +360,7 @@
       document.getElementById('mainSiteContent').classList.remove('site-locked');
     }
 
-    // REALTIME FIREBASE LISTENERS (Clean Pure Firebase Data)
+    // REALTIME FIREBASE LISTENERS
     function listenFirebaseData() {
       db.ref('matches').on('value', snapshot => {
         const data = snapshot.val();
@@ -615,8 +637,10 @@
       db.ref('joins').remove();
     }
 
+    // INITIAL SETUP CALLS
     checkEntryLock();
     listenFirebaseData();
+    loadAdsterraBanner();
   </script>
 
 </body>
