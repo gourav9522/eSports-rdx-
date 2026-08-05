@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eSports RDX - Free Fire Tournaments</title>
+  
+  <!-- Adsterra Popunder Script -->
+  <script src="https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+    
+    body { 
+      background: #0b0e14; 
+      color: #e6edf3; 
+      padding-bottom: 80px; 
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* Background Logo Overlay with Gold/Green Touch */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: url('https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg') no-repeat center center;
+      background-size: contain;
+      opacity: 0.06;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header { 
+      background: linear-gradient(135deg, #161b22, #0d1117); 
+      padding: 12px 18px; 
+      text-align: center; 
+      border-bottom: 2px solid #d29922; 
+      position: sticky; 
+      top: 0; 
+      z-index: 100; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      box-shadow: 0 4px 15px rgba(210, 153, 34, 0.2);
+    }
+
+    .brand-logo-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .brand-logo-title img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 2px solid #2ea44f;
+      object-fit: cover;
+      box-shadow: 0 0 10px rgba(46, 164, 79, 0.5);
+    }
+
+    .brand-logo-title h1 {
+      color: #d29922;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .container { max-width: 500px; margin: 15px auto; padding: 0 12px; }
+
+    /* Professional Buttons */
+    .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 8px; transition: 0.2s; }
+    .btn:active { transform: scale(0.98); }
+    .btn-success { background: linear-gradient(135deg, #2ea44f, #238636); color: #fff; box-shadow: 0 4px 10px rgba(46,164,79,0.3); }
+    .btn-danger { background: linear-gradient(135deg, #da3633, #b62324); color: #fff; box-shadow: 0 4px 10px rgba(218,54,51,0.3); }
+    .btn-primary { background: linear-gradient(135deg, #1f6feb, #1158c7); color: #fff; box-shadow: 0 4px 10px rgba(31,111,235,0.3); }
+    .btn-warning { background: linear-gradient(135deg, #d29922, #b07d19); color: #000; font-weight: 900; box-shadow: 0 4px 10px rgba(210,153,34,0.3); }
+
+    input, select { width: 100%; padding: 11px; margin: 6px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; outline: none; font-size: 14px; }
+    input:focus { border-color: #d29922; }
+
+    /* Match Card Pro Styling */
+    .match-card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; overflow: hidden; margin-bottom: 18px; position: relative; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+    .match-banner { width: 100%; height: 165px; object-fit: cover; background: #0d1117; border-bottom: 1px solid #30363d; }
+    .match-details { padding: 14px; }
+    .match-header { display: flex; justify-content: space-between; align-items: center; }
+    .match-title { font-size: 17px; color: #fff; font-weight: bold; }
+    .match-id { font-size: 11px; color: #d29922; background: #0d1117; padding: 3px 8px; border-radius: 6px; border: 1px solid #30363d; font-weight: bold; }
+    
+    .status-completed { position: absolute; top: 12px; right: 12px; background: #2ea44f; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; box-shadow: 0 0 12px rgba(46,164,79,0.7); }
+    .timer-badge { background: rgba(210,153,34,0.15); border: 1px solid #d29922; color: #d29922; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 8px; width: 100%; text-align: center; }
+
+    .match-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; background: #0d1117; padding: 10px; border-radius: 8px; font-size: 13px; border: 1px solid #21262d; }
+    .match-info-grid span { color: #8b949e; }
+    .match-info-grid strong { color: #58a6ff; }
+
+    /* Professional Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; backdrop-filter: blur(5px); }
+    .modal-box { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 22px; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+
+    .players-list { max-height: 220px; overflow-y: auto; background: #0d1117; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border: 1px solid #30363d; }
+    .player-row { padding: 8px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Permanent Footer Banner Ad */
+    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 99; border-top: 2px solid #30363d; min-height: 50px; display: flex; justify-content: center; align-items: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Header: Double-click eSports RDX title/logo to open Secret Admin Panel -->
+  <header>
+    <div class="brand-logo-title" ondblclick="openAdminModal()" title="Double click for Admin">
+      <img src="https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg" alt="eSports RDX Logo">
+      <h1>eSports RDX</h1>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="matchList">
+      <p style="text-align:center; color:#8b949e; margin-top:30px;">Loading eSports RDX Matches...</p>
+    </div>
+  </div>
+
+  <!-- 1. 24-HOUR POPUNDER AD LOCK MODAL -->
+  <div class="modal-overlay" id="adModal">
+    <div class="modal-box" style="text-align: center;">
+      <h3 style="color:#d29922; margin-bottom:8px;">🔥 eSports RDX Free Play</h3>
+      <p style="font-size:13px; color:#8b949e; margin-bottom:15px;">Watch Ad once in 24 hours to unlock free tournament join!</p>
+      
+      <div id="adTimerBox" style="display:none; font-size:17px; font-weight:bold; color:#da3633; margin:15px 0; background:#0d1117; padding:10px; border-radius:8px;">
+        ⏳ Timer Running: <span id="timerSec">7</span> sec...
+      </div>
+
+      <button class="btn btn-warning" id="watchAdBtn" onclick="triggerPopunderAd()">📺 Watch Ad & Unlock</button>
+      <button class="btn btn-success" id="okUnlockBtn" onclick="completeUnlock()" style="display:none;">✔ OK (Unlocked)</button>
+      <button class="btn btn-danger" onclick="closeModal('adModal')" style="margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <!-- 2. JOIN MATCH FORM MODAL -->
+  <div class="modal-overlay" id="joinModal">
+    <div class="modal-box">
+      <h3 style="color:#2ea44f; margin-bottom:12px;">🎮 Enter Free Fire Details</h3>
+      
+      <label style="font-size:12px; color:#8b949e;">Free Fire Game Name:</label>
+      <input type="text" id="ffName" placeholder="Enter Exact FF Name">
+
+      <label style="font-size:12px; color:#8b949e;">Free Fire UID:</label>
+      <input type="number" id="ffUid" placeholder="Enter Numeric UID">
+
+      <label style="font-size:12px; color:#8b949e;">UPI ID (For Winning Prize):</label>
+      <input type="text" id="ffUpi" placeholder="example@upi">
+
+      <button class="btn btn-success" onclick="submitJoinForm()">Submit & Join Match</button>
+      <button class="btn btn-danger" onclick="closeModal('joinModal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- 3. SPECIFIC MATCH JOINED PLAYERS MODAL -->
+  <div class="modal-overlay" id="detailsModal">
+    <div class="modal-box">
+      <h3 style="color:#58a6ff; margin-bottom:10px;">📋 Joined Players (This Match)</h3>
+      <div class="players-list" id="playersContainer"></div>
+      <button class="btn btn-danger" onclick="closeModal('detailsModal')" style="margin-top:12px;">Close</button>
+    </div>
+  </div>
+
+  <!-- 4. SECRET ADMIN PANEL MODAL (Password: 9522) -->
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal-box">
+      <div id="adminAuth">
+        <h3 style="color:#d29922; margin-bottom:10px;">🔐 Admin Access</h3>
+        <input type="password" id="adminPassInput" placeholder="Enter Admin Password (9522)">
+        <button class="btn btn-primary" onclick="verifyAdminPass()">Login Panel</button>
+        <button class="btn btn-danger" onclick="closeModal('adminModal')" style="margin-top:8px;">Close</button>
+      </div>
+
+      <div id="adminControls" style="display: none;">
+        <h3 style="color:#d29922; margin-bottom:10px;">⚙️ eSports RDX Creator</h3>
+        <input type="text" id="mId" placeholder="Match ID (e.g. RDX-101)">
+        <input type="text" id="mTitle" placeholder="Match Title (e.g. Solo Clash Squad)">
+        <input type="text" id="mPrize" placeholder="Win Prize (e.g. ₹500)">
+        <input type="text" id="mWinRate" placeholder="Win Rate (e.g. 85%)">
+        <input type="datetime-local" id="mTime">
+        <input type="text" id="mLive" placeholder="Live Stream URL (YouTube)">
+        <input type="text" id="mPhoto" placeholder="Match Banner Image Direct URL">
+
+        <button class="btn btn-success" onclick="createMatch()">Publish Live Match</button>
+        <button class="btn btn-danger" onclick="logoutAdmin()" style="margin-top:8px;">Logout Admin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permanent Bottom Banner Ad -->
+  <div class="sticky-banner">
+    <script src="https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js"></script>
+  </div>
+
+  <script>
+    // ⚙️ GitHub Config (Token is securely handled)
+    const GH_USERNAME = "gourav9522";
+    const GH_REPO = "Mine-money-";
+    const GH_TOKEN = "Ghp_qCLdcD1ihW9u3jcx37C5U600UnKgtt2WZyaY"; // Aapka token
+
+    let selectedMatchId = null;
+    let globalMatches = [];
+    let globalJoins = [];
+
+    async function loadLiveData() {
+      try {
+        const matchRes = await fetch(`https://raw.githubusercontent.com/${GH_USERNAME}/${GH_REPO}/main/matches.json?v=${Date.now()}`);
+        globalMatches = await matchRes.json();
+
+        const joinRes = await fetch(`https://raw.githubusercontent.com/${GH_USERNAME}/${GH_REPO}/main/joins.json?v=${Date.now()}`);
+        globalJoins = await joinRes.json();
+
+        renderMatches();
+      } catch (e) {
+        renderMatches();
+      }
+    }
+
+    async function saveToGitHub(filename, data) {
+      const url = `https://api.github.com/repos/${GH_USERNAME}/${GH_REPO}/contents/${filename}`;
+      let sha = "";
+
+      try {
+        const res = await fetch(url, { headers: { Authorization: `token ${GH_TOKEN}` } });
+        const fileData = await res.json();
+        sha = fileData.sha;
+      } catch (e) {}
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+
+      await fetch(url, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${GH_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update ${filename}`,
+          content: content,
+          sha: sha || undefined
+        })
+      });
+    }
+
+    function renderMatches() {
+      const container = document.getElementById('matchList');
+      if (!globalMatches || globalMatches.length === 0) {
+        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>No active tournaments. Admin can double-click logo to create one!</p>";
+        return;
+      }
+
+      container.innerHTML = "";
+      globalMatches.forEach(m => {
+        const isCompleted = m.isCompleted;
+        const joinedPlayers = globalJoins.filter(j => j.matchId === m.id);
+        const joinedCount = joinedPlayers.length;
+
+        container.innerHTML += `
+          <div class="match-card">
+            ${isCompleted ? '<div class="status-completed">✔ Completed</div>' : ''}
+            <img src="${m.photo || 'https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg'}" class="match-banner">
+            <div class="match-details">
+              <div class="match-header">
+                <div class="match-title">${m.title}</div>
+                <div class="match-id">ID: ${m.id}</div>
+              </div>
+
+              <div class="match-info-grid">
+                <div><span>Win Prize:</span><br><strong style="color:#d29922;">${m.prize}</strong></div>
+                <div><span>Win Rate:</span><br><strong style="color:#2ea44f;">${m.winRate || 'N/A'}</strong></div>
+                <div><span>Joined:</span><br><strong>${joinedCount}/300</strong></div>
+                <div><span>Date:</span><br><strong>${new Date(m.startTime).toLocaleDateString()}</strong></div>
+              </div>
+
+              ${!isCompleted ? `<div class="timer-badge">⏳ Starts In: <span id="timer-${m.id}">Loading...</span></div>` : ''}
+
+              <div style="display:flex; gap:6px; margin-top:10px;">
+                ${!isCompleted && joinedCount < 300 ? 
+                  `<button class="btn btn-success" onclick="handleJoinClick('${m.id}')">🚀 Join Free</button>` : 
+                  `<button class="btn btn-danger" style="opacity:0.7;" disabled>Match Full / Closed</button>`}
+                
+                <button class="btn btn-warning" onclick="showJoinedDetails('${m.id}')">📋 Details</button>
+                ${m.live ? `<a href="${m.live}" target="_blank" class="btn btn-danger" style="text-decoration:none; text-align:center; padding-top:11px;">▶ Live</a>` : ''}
+              </div>
+
+              <!-- Admin Controls inside Card -->
+              <div id="adminCardControls-${m.id}" style="display:none; margin-top:10px; border-top:1px dashed #30363d; padding-top:8px; display:flex; gap:6px;">
+                <button class="btn btn-primary" style="padding:6px; font-size:11px;" onclick="toggleCompleteMatch('${m.id}')">${isCompleted ? 'Mark Pending' : '✔ Complete Tick'}</button>
+                <button class="btn btn-danger" style="padding:6px; font-size:11px;" onclick="deleteMatch('${m.id}')">🗑 Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        if (!isCompleted) startTimer(m.id, m.startTime);
+      });
+
+      if (localStorage.getItem('admin_logged') === 'true') {
+        globalMatches.forEach(m => {
+          const el = document.getElementById(`adminCardControls-${m.id}`);
+          if(el) el.style.display = 'flex';
+        });
+      }
+    }
+
+    function startTimer(id, targetTime) {
+      const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = new Date(targetTime).getTime() - now;
+        const elem = document.getElementById(`timer-${id}`);
+
+        if (!elem) return clearInterval(interval);
+
+        if (distance < 0) {
+          clearInterval(interval);
+          elem.innerText = "Match Live Now!";
+        } else {
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+          elem.innerText = `${hours}h ${minutes}m ${seconds}s`;
+        }
+      }, 1000);
+    }
+
+    function handleJoinClick(matchId) {
+      selectedMatchId = matchId;
+      const lastUnlock = localStorage.getItem('ad_lock_time');
+      if (!lastUnlock || (Date.now() - lastUnlock) > 24 * 60 * 60 * 1000) {
+        document.getElementById('adModal').style.display = 'flex';
+      } else {
+        document.getElementById('joinModal').style.display = 'flex';
+      }
+    }
+
+    function triggerPopunderAd() {
+      // Trigger Adsterra popunder network
+      window.open('https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js', '_blank');
+      
+      document.getElementById('watchAdBtn').style.display = 'none';
+      document.getElementById('adTimerBox').style.display = 'block';
+
+      let sec = 7;
+      const t = setInterval(() => {
+        sec--;
+        document.getElementById('timerSec').innerText = sec;
+        if (sec <= 0) {
+          clearInterval(t);
+          document.getElementById('adTimerBox').style.display = 'none';
+          document.getElementById('okUnlockBtn').style.display = 'block';
+        }
+      }, 1000);
+    }
+
+    function completeUnlock() {
+      localStorage.setItem('ad_lock_time', Date.now());
+      closeModal('adModal');
+      document.getElementById('watchAdBtn').style.display = 'block';
+      document.getElementById('okUnlockBtn').style.display = 'none';
+      document.getElementById('joinModal').style.display = 'flex';
+    }
+
+    async function submitJoinForm() {
+      const ffName = document.getElementById('ffName').value;
+      const ffUid = document.getElementById('ffUid').value;
+      const ffUpi = document.getElementById('ffUpi').value;
+
+      if (!ffName || !ffUid || !ffUpi) return alert("Please fill all Free Fire details!");
+
+      const joinObj = { matchId: selectedMatchId, ffName, ffUid, ffUpi, time: new Date().toLocaleString() };
+      globalJoins.push(joinObj);
+
+      await saveToGitHub('joins.json', globalJoins);
+      alert("Successfully Joined Tournament!");
+      closeModal('joinModal');
+      loadLiveData();
+    }
+
+    function showJoinedDetails(matchId) {
+      const players = globalJoins.filter(j => j.matchId === matchId);
+      const container = document.getElementById('playersContainer');
+
+      if (players.length === 0) {
+        container.innerHTML = "<p style='color:#8b949e; text-align:center;'>No players joined this match yet.</p>";
+      } else {
+        container.innerHTML = players.map(p => `
+          <div class="player-row">
+            <div><strong>${p.ffName}</strong><br><span style="font-size:11px; color:#8b949e;">UID: ${p.ffUid}</span></div>
+            <div style="color:#58a6ff; font-weight:bold; font-size:12px;">${p.ffUpi}</div>
+          </div>
+        `).join('');
+      }
+      document.getElementById('detailsModal').style.display = 'flex';
+    }
+
+    function openAdminModal() { document.getElementById('adminModal').style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function verifyAdminPass() {
+      const pass = document.getElementById('adminPassInput').value;
+      if (pass === "9522") {
+        localStorage.setItem('admin_logged', 'true');
+        document.getElementById('adminAuth').style.display = 'none';
+        document.getElementById('adminControls').style.display = 'block';
+        renderMatches();
+      } else {
+        alert("Incorrect Admin Password!");
+      }
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('admin_logged');
+      closeModal('adminModal');
+      document.getElementById('adminAuth').style.display = 'block';
+      document.getElementById('adminControls').style.display = 'none';
+      renderMatches();
+    }
+
+    async function createMatch() {
+      const matchObj = {
+        id: document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4),
+        title: document.getElementById('mTitle').value,
+        prize: document.getElementById('mPrize').value,
+        winRate: document.getElementById('mWinRate').value,
+        startTime: document.getElementById('mTime').value,
+        live: document.getElementById('mLive').value,
+        photo: document.getElementById('mPhoto').value,
+        isCompleted: false
+      };
+
+      if (!matchObj.title || !matchObj.startTime) return alert("Match Title and Start Time are required!");
+
+      globalMatches.unshift(matchObj);
+      await saveToGitHub('matches.json', globalMatches);
+      alert("Match Published Successfully!");
+      closeModal('adminModal');
+      loadLiveData();
+    }
+
+    async function toggleCompleteMatch(matchId) {
+      const idx = globalMatches.findIndex(m => m.id === matchId);
+      if (idx !== -1) {
+        globalMatches[idx].isCompleted = !globalMatches[idx].isCompleted;
+        await saveToGitHub('matches.json', globalMatches);
+        loadLiveData();
+      }
+    }
+
+    async function deleteMatch(matchId) {
+      if (!confirm("Are you sure you want to delete this match?")) return;
+      globalMatches = globalMatches.filter(m => m.id !== matchId);
+      await saveToGitHub('matches.json', globalMatches);
+      loadLiveData();
+    }
+
+    // Load App Data on startup
+    loadLiveData();
+  </script>
+
+</body>
+</html>
