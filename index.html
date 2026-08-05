@@ -27,9 +27,7 @@
       content: "";
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000') no-repeat center center;
-      background-size: cover;
-      opacity: 0.05;
+      background: radial-gradient(circle, rgba(212,153,34,0.1) 0%, rgba(11,14,20,1) 80%);
       z-index: -1;
       pointer-events: none;
     }
@@ -63,6 +61,7 @@
       border: 2px solid #2ea44f;
       object-fit: cover;
       box-shadow: 0 0 10px rgba(46, 164, 79, 0.5);
+      background: #161b22;
     }
 
     .brand-logo-title h1 {
@@ -115,7 +114,7 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    /* STICKY BANNER AD CONTAINER FIX */
+    /* STICKY BANNER AD CONTAINER */
     .sticky-banner { 
       position: fixed; 
       bottom: 0; 
@@ -130,11 +129,6 @@
       justify-content: center; 
       align-items: center;
       overflow: hidden;
-    }
-    
-    .sticky-banner iframe {
-      margin: 0 auto !important;
-      display: block !important;
     }
   </style>
 </head>
@@ -159,7 +153,7 @@
   <div id="mainSiteContent" class="site-locked">
     <header>
       <div class="brand-logo-title" ondblclick="openAdminModal()">
-        <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=200" alt="eSports RDX Logo" onerror="this.src='https://via.placeholder.com/100/161b22/d29922?text=RDX'">
+        <img id="appHeaderLogo" src="https://svgshare.com/i/13y1.svg" alt="RDX Logo" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23d29922\'/><text x=\'50%\' y=\'57%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'30\' font-weight=\'bold\' fill=\'%23000\'>RDX</text></svg>';">
         <h1>eSports RDX</h1>
       </div>
     </header>
@@ -214,8 +208,8 @@
   </div>
 
   <!-- 5. SECRET ADMIN MODAL (PASSWORD: 9522) -->
-  <div class="modal-overlay" id="adminModal" onclick="preventAdTrigger(event)">
-    <div class="modal-box" onclick="preventAdTrigger(event)">
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal-box">
       <div id="adminAuth">
         <h3 style="color:#d29922; margin-bottom:10px;">🔐 Admin Access</h3>
         <input type="password" id="adminPassInput" placeholder="Enter Admin Password (9522)">
@@ -271,29 +265,9 @@
     let globalMatches = [];
     let globalJoins = [];
 
-    const defaultBannerImg = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800";
+    const defaultBannerImg = "data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\' viewBox=\'0 0 800 400\'><rect width=\'100%\' height=\'100%\' fill=\'%23161b22\'/><text x=\'50%\' y=\'45%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'38\' font-weight=\'bold\' fill=\'%23d29922\' font-family=\'sans-serif\'>eSports RDX</text><text x=\'50%\' y=\'60%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'22\' fill=\'%232ea44f\' font-family=\'sans-serif\'>FREE FIRE TOURNAMENT</text></svg>";
 
-    // STRICT 2-CLICK POPUNDER LOGIC
-    sessionStorage.setItem('userClickCounter', '0');
-
-    window.addEventListener('click', function(e) {
-      // Ignore clicks on admin modal or inputs
-      if (e.target.closest('#adminModal')) return;
-
-      let currentClicks = parseInt(sessionStorage.getItem('userClickCounter') || '0');
-      currentClicks++;
-      sessionStorage.setItem('userClickCounter', currentClicks.toString());
-
-      // Trigger ONLY on 2nd Click (Strict Every 2 Clicks)
-      if (currentClicks % 2 === 0) {
-        triggerNativePopunder();
-      }
-    });
-
-    function preventAdTrigger(e) {
-      e.stopPropagation();
-    }
-
+    // TRIGGER POPUNDER ENGINE
     function triggerNativePopunder() {
       const el = document.createElement('a');
       el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
@@ -304,10 +278,27 @@
       document.body.removeChild(el);
     }
 
-    // DYNAMIC BANNER INJECTION FIX
+    // GENERIC BUTTON AD TRACKER (1 TIME PER BUTTON TYPE PER MATCH)
+    function handleButtonAdAction(actionType, matchId, callback) {
+      const storageKey = `ad_shown_${actionType}_${matchId}`;
+      const isAdShown = sessionStorage.getItem(storageKey);
+
+      if (!isAdShown) {
+        sessionStorage.setItem(storageKey, 'true');
+        triggerNativePopunder();
+      }
+
+      if (typeof callback === 'function') {
+        callback();
+      }
+    }
+
+    // DYNAMIC BANNER INJECTION
     function loadAdsterraBanner() {
       const bannerContainer = document.getElementById('adsterra_banner_wrapper');
       if (!bannerContainer) return;
+
+      bannerContainer.innerHTML = "";
 
       window.atOptions = {
         'key' : 'c5201286627190e86a9d9523213ad3ec',
@@ -428,10 +419,10 @@
         } else if (joinedCount >= 300) {
           actionBtnHtml = `<button class="btn btn-disabled" disabled>Match Full</button>`;
         } else {
-          actionBtnHtml = `<button class="btn btn-success" onclick="openJoinModal('${m.id}')">🚀 Join Free</button>`;
+          actionBtnHtml = `<button class="btn btn-success" onclick="handleButtonAdAction('join', '${m.id}', () => openJoinModal('${m.id}'))">🚀 Join Free</button>`;
         }
 
-        const bannerSrc = m.photo && m.photo.trim() !== "" ? m.photo : defaultBannerImg;
+        const bannerSrc = (m.photo && m.photo.trim() !== "") ? m.photo : defaultBannerImg;
 
         container.innerHTML += `
           <div class="match-card">
@@ -454,9 +445,9 @@
 
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 ${actionBtnHtml}
-                <button class="btn btn-warning" onclick="showJoinedDetails('${m.id}')">📋 Details</button>
-                <button class="btn btn-info" onclick="showRoomCredentials('${m.roomId}', '${m.roomPass}')">🔑 Room Credentials</button>
-                ${m.live ? `<a href="${m.live}" target="_blank" class="btn btn-danger" style="text-decoration:none; text-align:center; padding-top:11px;">▶ Live</a>` : ''}
+                <button class="btn btn-warning" onclick="handleButtonAdAction('details', '${m.id}', () => showJoinedDetails('${m.id}'))">📋 Details</button>
+                <button class="btn btn-info" onclick="handleButtonAdAction('room', '${m.id}', () => showRoomCredentials('${m.roomId}', '${m.roomPass}'))">🔑 Room Credentials</button>
+                ${m.live ? `<button class="btn btn-danger" onclick="handleButtonAdAction('live', '${m.id}', () => window.open('${m.live}', '_blank'))">▶ Live</button>` : ''}
               </div>
             </div>
           </div>
