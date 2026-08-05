@@ -1,630 +1,330 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>eSports RDX - Free Fire Tournaments</title>
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-    
-    body { 
-      background: #0b0e14; 
-      color: #e6edf3; 
-      padding-bottom: 90px; 
-      position: relative;
-      min-height: 100vh;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle, rgba(212,153,34,0.1) 0%, rgba(11,14,20,1) 80%);
-      z-index: -1;
-      pointer-events: none;
-    }
-
-    header { 
-      background: linear-gradient(135deg, #161b22, #0d1117); 
-      padding: 12px 18px; 
-      text-align: center; 
-      border-bottom: 2px solid #d29922; 
-      position: sticky; 
-      top: 0; 
-      z-index: 100; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      box-shadow: 0 4px 15px rgba(210, 153, 34, 0.2);
-    }
-
-    .brand-logo-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .brand-logo-title img {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: 2px solid #2ea44f;
-      object-fit: cover;
-      box-shadow: 0 0 10px rgba(46, 164, 79, 0.5);
-      background: #161b22;
-    }
-
-    .brand-logo-title h1 {
-      color: #d29922;
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-
-    .container { max-width: 500px; margin: 15px auto; padding: 0 12px; }
-
-    .site-locked {
-      filter: blur(10px);
-      pointer-events: none;
-      user-select: none;
-    }
-
-    .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin-top: 8px; transition: 0.2s; }
-    .btn:active { transform: scale(0.98); }
-    .btn-success { background: linear-gradient(135deg, #2ea44f, #238636); color: #fff; box-shadow: 0 4px 10px rgba(46,164,79,0.3); }
-    .btn-danger { background: linear-gradient(135deg, #da3633, #b62324); color: #fff; box-shadow: 0 4px 10px rgba(218,54,51,0.3); }
-    .btn-primary { background: linear-gradient(135deg, #1f6feb, #1158c7); color: #fff; box-shadow: 0 4px 10px rgba(31,111,235,0.3); }
-    .btn-warning { background: linear-gradient(135deg, #d29922, #b07d19); color: #000; font-weight: 900; box-shadow: 0 4px 10px rgba(210,153,34,0.3); }
-    .btn-info { background: linear-gradient(135deg, #a371f7, #8957e5); color: #fff; box-shadow: 0 4px 10px rgba(163,113,247,0.3); }
-    .btn-disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
-
-    input, select { width: 100%; padding: 11px; margin: 6px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; outline: none; font-size: 14px; }
-    input:focus { border-color: #d29922; }
-
-    .match-card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; overflow: hidden; margin-bottom: 18px; position: relative; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
-    .match-banner { width: 100%; height: 165px; object-fit: cover; background: #0d1117; border-bottom: 1px solid #30363d; display: block; }
-    .match-details { padding: 14px; }
-    .match-header { display: flex; justify-content: space-between; align-items: center; }
-    .match-title { font-size: 17px; color: #fff; font-weight: bold; }
-    .match-id { font-size: 11px; color: #d29922; background: #0d1117; padding: 3px 8px; border-radius: 6px; border: 1px solid #30363d; font-weight: bold; }
-    
-    .status-completed { position: absolute; top: 12px; right: 12px; background: #2ea44f; color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; box-shadow: 0 0 12px rgba(46,164,79,0.7); }
-    .timer-badge { background: rgba(210,153,34,0.15); border: 1px solid #d29922; color: #d29922; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 13px; display: inline-block; margin-top: 8px; width: 100%; text-align: center; }
-
-    .match-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; background: #0d1117; padding: 10px; border-radius: 8px; font-size: 13px; border: 1px solid #21262d; }
-    .match-info-grid span { color: #8b949e; }
-    .match-info-grid strong { color: #58a6ff; }
-
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; backdrop-filter: blur(8px); }
-    .modal-box { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 22px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-
-    .players-list { max-height: 220px; overflow-y: auto; background: #0d1117; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border: 1px solid #30363d; }
-    .player-row { padding: 8px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
-
-    .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
-
-    .sticky-banner { 
-      position: fixed; 
-      bottom: 0; 
-      left: 0; 
-      width: 100%; 
-      background: #0d1117; 
-      text-align: center; 
-      z-index: 999; 
-      border-top: 2px solid #30363d; 
-      height: 60px; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center;
-      overflow: hidden;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSports RDX</title>
+    <style>
+        :root {
+            --bg-color: #0b0e14;
+            --card-bg: #161b22;
+            --gold: #d29922;
+            --green: #2ea44f;
+            --red: #da3633;
+            --text-white: #ffffff;
+            --text-gray: #8b949e;
+        }
+        body {
+            background-color: var(--bg-color);
+            background-image: url('https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg');
+            background-size: cover;
+            background-blend-mode: overlay;
+            color: var(--text-white);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: rgba(22, 27, 34, 0.95);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        header img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--gold); }
+        h1 { color: var(--gold); margin: 0; font-size: 22px; }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .card {
+            background: rgba(22, 27, 34, 0.95);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-green { background: var(--green); color: #fff; }
+        .btn-red { background: var(--red); color: #fff; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #fff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .banner-img { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-bottom: 15px; border: 1px solid var(--gold); }
+        .flex { display: flex; gap: 10px; }
+    </style>
 </head>
 <body>
 
-  <!-- 1. ENTRY 24-HOUR AD LOCK MODAL -->
-  <div class="modal-overlay" id="adModal" style="display:flex;">
-    <div class="modal-box" style="text-align: center;">
-      <h3 style="color:#d29922; margin-bottom:8px;">🔥 Welcome to eSports RDX</h3>
-      <p style="font-size:13px; color:#8b949e; margin-bottom:15px;">Site ke sabhi tournaments unlocked karne ke liye niche button par click karein (Valid for 24 Hours).</p>
-      
-      <div id="adTimerBox" style="display:none; font-size:17px; font-weight:bold; color:#da3633; margin:15px 0; background:#0d1117; padding:10px; border-radius:8px; border: 1px solid #da3633;">
-        ⏳ Ad Viewing Timer: <span id="timerSec">7</span>s
-      </div>
-
-      <button class="btn btn-warning" id="watchAdBtn" onclick="triggerPopunderEvery3rdClick(); triggerPopunderAd();">📺 Watch Ad & Unlock</button>
-      <button class="btn btn-success" id="okUnlockBtn" onclick="completeUnlock()" style="display:none;">✔ OK (Unlocked)</button>
-    </div>
-  </div>
-
-  <!-- MAIN SITE CONTENT CONTAINER -->
-  <div id="mainSiteContent" class="site-locked">
     <header>
-      <div class="brand-logo-title" ondblclick="openAdminModal()">
-        <img id="appHeaderLogo" src="https://svgshare.com/i/13y1.svg" alt="RDX Logo" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'45\' fill=\'%23d29922\'/><text x=\'50%\' y=\'57%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'30\' font-weight=\'bold\' fill=\'%23000\'>RDX</text></svg>';">
+        <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
         <h1>eSports RDX</h1>
-      </div>
     </header>
 
     <div class="container">
-      <div id="matchList">
-        <p style="text-align:center; color:#8b949e; margin-top:30px;">Connecting Live Database...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. DIRECT JOIN MATCH FORM MODAL -->
-  <div class="modal-overlay" id="joinModal">
-    <div class="modal-box">
-      <h3 style="color:#2ea44f; margin-bottom:12px;">🎮 Enter Free Fire Details</h3>
-      
-      <label style="font-size:12px; color:#8b949e;">Free Fire Game Name:</label>
-      <input type="text" id="ffName" placeholder="Enter Exact FF Name">
-
-      <label style="font-size:12px; color:#8b949e;">Free Fire UID:</label>
-      <input type="number" id="ffUid" placeholder="Enter Numeric UID">
-
-      <label style="font-size:12px; color:#8b949e;">UPI ID (For Winning Prize):</label>
-      <input type="text" id="ffUpi" placeholder="example@upi">
-
-      <button class="btn btn-success" onclick="submitJoinForm()">Submit & Join Match</button>
-      <button class="btn btn-danger" onclick="closeModal('joinModal')">Cancel</button>
-    </div>
-  </div>
-
-  <!-- 3. JOINED PLAYER DETAILS MODAL -->
-  <div class="modal-overlay" id="detailsModal">
-    <div class="modal-box">
-      <h3 style="color:#58a6ff; margin-bottom:10px;">📋 Joined Players</h3>
-      <div class="players-list" id="playersContainer"></div>
-      <button class="btn btn-danger" onclick="closeModal('detailsModal')" style="margin-top:12px;">Close</button>
-    </div>
-  </div>
-
-  <!-- 4. ROOM ID & PASS SHOW MODAL FOR PLAYERS -->
-  <div class="modal-overlay" id="roomDetailsModal">
-    <div class="modal-box" style="text-align:center;">
-      <h3 style="color:#a371f7; margin-bottom:10px;">🔑 Custom Room Details</h3>
-      <div style="background:#0d1117; padding:15px; border-radius:10px; border:1px solid #30363d; margin: 10px 0;">
-        <p style="color:#8b949e; font-size:12px;">Room ID:</p>
-        <h2 style="color:#d29922; margin-bottom:10px;" id="dispRoomId">Not Set</h2>
-        <p style="color:#8b949e; font-size:12px;">Room Password:</p>
-        <h2 style="color:#2ea44f;" id="dispRoomPass">Not Set</h2>
-      </div>
-      <button class="btn btn-danger" onclick="closeModal('roomDetailsModal')">Close</button>
-    </div>
-  </div>
-
-  <!-- 5. SECRET ADMIN MODAL (PASSWORD: 9522) -->
-  <div class="modal-overlay" id="adminModal">
-    <div class="modal-box">
-      <div id="adminAuth">
-        <h3 style="color:#d29922; margin-bottom:10px;">🔐 Admin Access</h3>
-        <input type="password" id="adminPassInput" placeholder="Enter Admin Password (9522)">
-        <button class="btn btn-primary" onclick="verifyAdminPass()">Login Panel</button>
-        <button class="btn btn-danger" onclick="closeModal('adminModal')" style="margin-top:8px;">Close</button>
-      </div>
-
-      <div id="adminControls" style="display: none;">
-        <h3 style="color:#d29922; margin-bottom:10px;">⚙️ Create Match</h3>
-        <input type="text" id="mId" placeholder="Match ID (e.g. RDX-101)">
-        <input type="text" id="mTitle" placeholder="Match Title (e.g. Solo Battle Royale)">
-        <input type="text" id="mPrize" placeholder="Win Prize (e.g. ₹500)">
-        <input type="text" id="mWinRate" placeholder="Win Rate (e.g. 85%)">
-        <input type="datetime-local" id="mTime">
-        
-        <input type="text" id="mRoomId" placeholder="Room ID (e.g. 849201)">
-        <input type="text" id="mRoomPass" placeholder="Room Password (e.g. 1234)">
-
-        <input type="text" id="mLive" placeholder="Live Stream URL (YouTube)">
-        <input type="text" id="mPhoto" placeholder="Banner Image Direct URL">
-
-        <button class="btn btn-success" onclick="createMatch()">Publish Live Match</button>
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 8px 0; border-top:1px solid #30363d; padding-top:10px;">
-          <h4 style="color:#58a6ff;">🛠️ Manage Matches</h4>
-          <button class="btn btn-danger" style="padding:4px 8px; font-size:10px; width:auto; margin-top:0;" onclick="clearAllOldMatches()">🗑 Clear All Matches</button>
+        <!-- Dynamic Banner -->
+        <div id="bannerArea">
+            <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" class="banner-img" id="dynamicBanner">
         </div>
 
-        <div id="adminMatchManageList" style="max-height:200px; overflow-y:auto;"></div>
-
-        <button class="btn btn-danger" onclick="logoutAdmin()" style="margin-top:10px;">Logout Admin</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FIXED PERMANENT BANNER AD CONTAINER -->
-  <div class="sticky-banner" id="bannerAdContainer">
-    <div id="adsterra_banner_wrapper"></div>
-  </div>
-
-  <script>
-    // FIREBASE CONFIGURATION
-    const firebaseConfig = {
-      databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com"
-    };
-
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.database();
-
-    let selectedMatchId = null;
-    let globalMatches = [];
-    let globalJoins = [];
-    let clickCount = 0; // Har 3 click par popunder ad open karne ke liye counter
-
-    const defaultBannerImg = "data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\' viewBox=\'0 0 800 400\'><rect width=\'100%\' height=\'100%\' fill=\'%23161b22\'/><text x=\'50%\' y=\'45%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'38\' font-weight=\'bold\' fill=\'%23d29922\' font-family=\'sans-serif\'>eSports RDX</text><text x=\'50%\' y=\'60%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'22\' fill=\'%232ea44f\' font-family=\'sans-serif\'>FREE FIRE TOURNAMENT</text></svg>";
-
-    // STRICT EVERY 3RD CLICK POPUNDER ENGINE
-    function triggerPopunderEvery3rdClick() {
-      clickCount++; // Har button click par count 1 badhega
-      
-      // Jab bhi clickCount 3, 6, 9, 12... hoga, tabhi ad khulega
-      if (clickCount % 3 === 0) {
-        const el = document.createElement('a');
-        el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
-        el.target = '_blank';
-        el.rel = 'noopener';
-        document.body.appendChild(el);
-        el.click();
-        document.body.removeChild(el);
-      }
-    }
-
-    function handleButtonAdAction(callback) {
-      triggerPopunderEvery3rdClick(); // Check every 3rd click counter
-      if (typeof callback === 'function') {
-        callback();
-      }
-    }
-
-    // DYNAMIC BANNER INJECTION
-    function loadAdsterraBanner() {
-      const bannerContainer = document.getElementById('adsterra_banner_wrapper');
-      if (!bannerContainer) return;
-
-      bannerContainer.innerHTML = "";
-
-      window.atOptions = {
-        'key' : 'c5201286627190e86a9d9523213ad3ec',
-        'format' : 'iframe',
-        'height' : 50,
-        'width' : 320,
-        'params' : {}
-      };
-
-      const s = document.createElement('script');
-      s.type = 'text/javascript';
-      s.src = '//pl29580635.effectivecpmnetwork.com/c5201286627190e86a9d9523213ad3ec/invoke.js';
-      
-      bannerContainer.appendChild(s);
-    }
-
-    // Check 24-Hour Entry Lock
-    function checkEntryLock() {
-      const lastUnlock = localStorage.getItem('ad_lock_time');
-      if (lastUnlock && (Date.now() - parseInt(lastUnlock)) < 24 * 60 * 60 * 1000) {
-        document.getElementById('adModal').style.display = 'none';
-        document.getElementById('mainSiteContent').classList.remove('site-locked');
-      } else {
-        document.getElementById('adModal').style.display = 'flex';
-        document.getElementById('mainSiteContent').classList.add('site-locked');
-      }
-    }
-
-    function triggerPopunderAd() {
-      document.getElementById('watchAdBtn').style.display = 'none';
-      document.getElementById('adTimerBox').style.display = 'block';
-
-      let sec = 7;
-      const t = setInterval(() => {
-        sec--;
-        document.getElementById('timerSec').innerText = sec;
-        if (sec <= 0) {
-          clearInterval(t);
-          document.getElementById('adTimerBox').style.display = 'none';
-          document.getElementById('okUnlockBtn').style.display = 'block';
-        }
-      }, 1000);
-    }
-
-    function completeUnlock() {
-      localStorage.setItem('ad_lock_time', Date.now());
-      document.getElementById('adModal').style.display = 'none';
-      document.getElementById('mainSiteContent').classList.remove('site-locked');
-    }
-
-    // REALTIME FIREBASE LISTENERS
-    function listenFirebaseData() {
-      db.ref('matches').on('value', snapshot => {
-        const data = snapshot.val();
-        globalMatches = [];
-        if (data) {
-          Object.keys(data).forEach(key => {
-            const item = data[key];
-            if (typeof item === 'object' && item !== null) {
-              item.fbKey = key;
-              globalMatches.push(item);
-            }
-          });
-        }
-        renderMatches();
-      });
-
-      db.ref('joins').on('value', snapshot => {
-        const data = snapshot.val();
-        globalJoins = [];
-        if (data) {
-          Object.keys(data).forEach(key => {
-            const item = data[key];
-            if (typeof item === 'object' && item !== null) {
-              globalJoins.push(item);
-            }
-          });
-        }
-        renderMatches();
-      });
-    }
-
-    function isUserJoined(matchId) {
-      const joinedList = JSON.parse(localStorage.getItem('joined_matches') || '[]');
-      return joinedList.includes(matchId);
-    }
-
-    function markMatchAsJoined(matchId) {
-      const joinedList = JSON.parse(localStorage.getItem('joined_matches') || '[]');
-      if (!joinedList.includes(matchId)) {
-        joinedList.push(matchId);
-        localStorage.setItem('joined_matches', JSON.stringify(joinedList));
-      }
-    }
-
-    function renderMatches() {
-      const container = document.getElementById('matchList');
-      if (!globalMatches || globalMatches.length === 0) {
-        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>Abhi koi match available nahi hai.<br><span style='font-size:12px;'>Admin Panel se naya match publish karein.</span></p>";
-        return;
-      }
-
-      container.innerHTML = "";
-      globalMatches.forEach(m => {
-        const isCompleted = m.isCompleted;
-        const joinedPlayers = globalJoins.filter(j => j.matchId === m.id);
-        const joinedCount = joinedPlayers.length;
-        const alreadyJoined = isUserJoined(m.id);
-
-        let actionBtnHtml = '';
-
-        if (alreadyJoined) {
-          actionBtnHtml = `<button class="btn btn-disabled" disabled>✔ Already Joined</button>`;
-        } else if (isCompleted) {
-          actionBtnHtml = `<button class="btn btn-disabled" disabled>Match Completed</button>`;
-        } else if (joinedCount >= 300) {
-          actionBtnHtml = `<button class="btn btn-disabled" disabled>Match Full</button>`;
-        } else {
-          actionBtnHtml = `<button class="btn btn-success" onclick="handleButtonAdAction(() => openJoinModal('${m.id}'))">🚀 Join Free</button>`;
-        }
-
-        const bannerSrc = (m.photo && m.photo.trim() !== "") ? m.photo : defaultBannerImg;
-
-        container.innerHTML += `
-          <div class="match-card">
-            ${isCompleted ? '<div class="status-completed">✔ Completed</div>' : ''}
-            <img src="${bannerSrc}" class="match-banner" onerror="this.onerror=null; this.src='${defaultBannerImg}';">
-            <div class="match-details">
-              <div class="match-header">
-                <div class="match-title">${m.title}</div>
-                <div class="match-id">ID: ${m.id}</div>
-              </div>
-
-              <div class="match-info-grid">
-                <div><span>Win Prize:</span><br><strong style="color:#d29922;">${m.prize}</strong></div>
-                <div><span>Win Rate:</span><br><strong style="color:#2ea44f;">${m.winRate || 'N/A'}</strong></div>
-                <div><span>Joined:</span><br><strong>${joinedCount}/300</strong></div>
-                <div><span>Date:</span><br><strong>${m.startTime ? new Date(m.startTime).toLocaleDateString() : 'TBA'}</strong></div>
-              </div>
-
-              ${!isCompleted ? `<div class="timer-badge">⏳ Starts In: <span id="timer-${m.id}">Loading...</span></div>` : ''}
-
-              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
-                ${actionBtnHtml}
-                <button class="btn btn-warning" onclick="handleButtonAdAction(() => showJoinedDetails('${m.id}'))">📋 Details</button>
-                <button class="btn btn-info" onclick="handleButtonAdAction(() => showRoomCredentials('${m.roomId}', '${m.roomPass}'))">🔑 Room Credentials</button>
-                ${m.live ? `<button class="btn btn-danger" onclick="handleButtonAdAction(() => window.open('${m.live}', '_blank'))">▶ Live</button>` : ''}
-              </div>
-            </div>
-          </div>
-        `;
-
-        if (!isCompleted && m.startTime) startTimer(m.id, m.startTime);
-      });
-
-      renderAdminManageList();
-    }
-
-    function renderAdminManageList() {
-      const container = document.getElementById('adminMatchManageList');
-      if (!container) return;
-
-      if (!globalMatches || globalMatches.length === 0) {
-        container.innerHTML = "<p style='color:#8b949e; font-size:12px;'>No matches to manage.</p>";
-        return;
-      }
-
-      container.innerHTML = globalMatches.map(m => `
-        <div class="admin-match-item">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:13px; color:#fff;">${m.title} (${m.id})</strong>
-            <div>
-              <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="toggleCompleteMatch('${m.fbKey}')">${m.isCompleted ? 'Undo' : '✔ Tick'}</button>
-              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="deleteMatch('${m.fbKey}')">🗑 Delete</button>
-            </div>
-          </div>
-          <div style="display:flex; gap:4px; margin-top:4px;">
-            <input type="text" id="updateRid-${m.fbKey}" placeholder="Room ID" value="${m.roomId || ''}" style="padding:5px; font-size:12px; margin:0;">
-            <input type="text" id="updateRpass-${m.fbKey}" placeholder="Room Pass" value="${m.roomPass || ''}" style="padding:5px; font-size:12px; margin:0;">
-            <button class="btn btn-success" style="padding:5px 8px; font-size:11px; margin-top:0; width:auto;" onclick="updateRoomInfo('${m.fbKey}')">Save</button>
-          </div>
+        <!-- Auth Section -->
+        <div id="authSection" class="card" style="text-align: center;">
+            <h3>Login to Continue</h3>
+            <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
         </div>
-      `).join('');
-    }
 
-    function startTimer(id, targetTime) {
-      const interval = setInterval(() => {
-        const now = new Date().getTime();
-        const distance = new Date(targetTime).getTime() - now;
-        const elem = document.getElementById(`timer-${id}`);
+        <!-- User Dashboard -->
+        <div id="userSection" class="card" style="display:none;">
+            <p>User: <span id="userName" style="color: var(--gold); font-weight:bold;"></span></p>
+            <p>Wallet: ₹<span id="userWallet" style="color: var(--green); font-weight:bold;">0</span></p>
+            <div class="flex">
+                <button class="btn btn-green" onclick="openAddMoney()">Add Money</button>
+                <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
+            </div>
+            <button class="btn" style="background:#21262d; color:#fff; margin-top:10px;" onclick="toggleHistory()">My Joined History</button>
+            <button class="btn btn-red" style="margin-top:5px;" onclick="logout()">Logout</button>
+        </div>
 
-        if (!elem) return clearInterval(interval);
+        <!-- History Modal / Box -->
+        <div id="historyBox" class="card" style="display:none;">
+            <h3>Joined Matches History</h3>
+            <div id="historyList">Loading history...</div>
+        </div>
 
-        if (distance < 0) {
-          clearInterval(interval);
-          elem.innerText = "Match Live Now!";
-        } else {
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-          elem.innerText = `${hours}h ${minutes}m ${seconds}s`;
+        <!-- Search Bar -->
+        <input type="text" id="searchMatch" placeholder="Search by Match Title or ID..." onkeyup="filterMatches()">
+
+        <h2>Tournaments</h2>
+        <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "APNA_FIREBASE_API_KEY_YAHAN_DAALEIN",
+            authDomain: "ad-g-55646.firebaseapp.com",
+            projectId: "ad-g-55646",
+            storageBucket: "ad-g-55646.appspot.com",
+            messagingSenderId: "519103871395",
+            appId: "APNA_APP_ID_YAHAN_DAALEIN"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let allMatches = [];
+
+        function loginWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(e => alert(e.message));
         }
-      }, 1000);
-    }
 
-    function openJoinModal(matchId) {
-      selectedMatchId = matchId;
-      document.getElementById('joinModal').style.display = 'flex';
-    }
+        function logout() { auth.signOut(); }
 
-    function submitJoinForm() {
-      const ffName = document.getElementById('ffName').value.trim();
-      const ffUid = document.getElementById('ffUid').value.trim();
-      const ffUpi = document.getElementById('ffUpi').value.trim();
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('userSection').style.display = 'block';
+                document.getElementById('userName').innerText = user.displayName;
+                setupUserAccount(user);
+            } else {
+                document.getElementById('authSection').style.display = 'block';
+                document.getElementById('userSection').style.display = 'none';
+            }
+        });
 
-      if (!ffName || !ffUid || !ffUpi) return alert("Sabhi details fill karein!");
+        function setupUserAccount(user) {
+            db.collection("users").doc(user.uid).get().then(doc => {
+                if (!doc.exists) {
+                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
+                } else {
+                    document.getElementById('userWallet').innerText = doc.data().wallet || 0;
+                }
+            });
+        }
 
-      const joinObj = { matchId: selectedMatchId, ffName, ffUid, ffUpi, time: new Date().toLocaleString() };
-      
-      db.ref('joins').push(joinObj);
+        // Load Banner & Settings
+        db.collection("settings").doc("config").onSnapshot(doc => {
+            if(doc.exists && doc.data().bannerUrl) {
+                document.getElementById('dynamicBanner').src = doc.data().bannerUrl;
+            }
+        });
 
-      markMatchAsJoined(selectedMatchId);
-      closeModal('joinModal');
+        // Load Matches
+        db.collection("matches").onSnapshot(snapshot => {
+            allMatches = [];
+            let html = "";
+            let currentTime = Date.now();
 
-      document.getElementById('ffName').value = '';
-      document.getElementById('ffUid').value = '';
-      document.getElementById('ffUpi').value = '';
+            snapshot.forEach(doc => {
+                let m = doc.data();
+                m.docId = doc.id;
+                allMatches.push(m);
 
-      alert("Match Successfully Joined!");
-    }
+                if(m.status === "completed") return; // Skip completed matches
 
-    function showJoinedDetails(matchId) {
-      const players = globalJoins.filter(j => j.matchId === matchId);
-      const container = document.getElementById('playersContainer');
+                html += `
+                    <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
+                        <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
+                        <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
+                        <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize} | Win Rate: ${m.winRate || '50%'}</p>
+                        <p>Time: ${m.time}</p>
+                        <p id="room-${m.docId}" style="color:var(--green); font-weight:bold;">Room ID & Pass: Locked (Join karke dekhein)</p>
+                        <button class="btn btn-green" onclick="joinMatch('${m.docId}', ${m.entryFee})">Join Match</button>
+                    </div>
+                `;
+            });
+            document.getElementById('matchesList').innerHTML = html;
+            checkJoinedStatus();
+        });
 
-      if (players.length === 0) {
-        container.innerHTML = "<p style='color:#8b949e; text-align:center;'>Is match me abhi koi player join nahi hua hai.</p>";
-      } else {
-        container.innerHTML = players.map(p => `
-          <div class="player-row">
-            <div><strong>${p.ffName}</strong><br><span style="font-size:11px; color:#8b949e;">UID: ${p.ffUid}</span></div>
-            <div style="color:#58a6ff; font-weight:bold; font-size:12px;">${p.ffUpi}</div>
-          </div>
-        `).join('');
-      }
-      document.getElementById('detailsModal').style.display = 'flex';
-    }
+        function joinMatch(matchId, entryFee) {
+            let user = auth.currentUser;
+            if(!user) { alert("Pehle login karein!"); return; }
 
-    function showRoomCredentials(rId, rPass) {
-      document.getElementById('dispRoomId').innerText = (rId && rId !== 'undefined' && rId.trim() !== '') ? rId : 'Will Update Soon';
-      document.getElementById('dispRoomPass').innerText = (rPass && rPass !== 'undefined' && rPass.trim() !== '') ? rPass : 'Will Update Soon';
-      document.getElementById('roomDetailsModal').style.display = 'flex';
-    }
+            let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
+            if(!ffId) return;
 
-    function openAdminModal() { document.getElementById('adminModal').style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+            db.collection("users").doc(user.uid).get().then(userDoc => {
+                let wallet = userDoc.data().wallet || 0;
+                if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
 
-    function verifyAdminPass() {
-      const pass = document.getElementById('adminPassInput').value;
-      if (pass === "9522") {
-        document.getElementById('adminAuth').style.display = 'none';
-        document.getElementById('adminControls').style.display = 'block';
-        renderAdminManageList();
-      } else {
-        alert("Incorrect Password!");
-      }
-    }
+                // Deduct & Join
+                db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee });
+                db.collection("joins").add({
+                    matchId: matchId,
+                    userId: user.uid,
+                    ffId: ffId,
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Successfully Joined Match!");
+                    checkJoinedStatus();
+                });
+            });
+        }
 
-    function logoutAdmin() {
-      closeModal('adminModal');
-      document.getElementById('adminAuth').style.display = 'block';
-      document.getElementById('adminControls').style.display = 'none';
-    }
+        function checkJoinedStatus() {
+            let user = auth.currentUser;
+            if(!user) return;
+            db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    let j = doc.data();
+                    let roomP = document.getElementById(`room-${j.matchId}`);
+                    if(roomP) {
+                        // Fetch room details for this match
+                        db.collection("matches").doc(j.matchId).get().then(mDoc => {
+                            if(mDoc.exists) {
+                                roomP.innerText = "Room ID & Pass: " + (mDoc.data().roomDetails || "Admin jald update karega");
+                            }
+                        });
+                    }
+                });
+            });
+        }
 
-    function createMatch() {
-      const customId = document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4);
-      const matchObj = {
-        id: customId,
-        title: document.getElementById('mTitle').value,
-        prize: document.getElementById('mPrize').value,
-        winRate: document.getElementById('mWinRate').value,
-        startTime: document.getElementById('mTime').value,
-        roomId: document.getElementById('mRoomId').value,
-        roomPass: document.getElementById('mRoomPass').value,
-        live: document.getElementById('mLive').value,
-        photo: document.getElementById('mPhoto').value,
-        isCompleted: false
-      };
+        function openAddMoney() {
+            let amt = prompt("Kitna amount add karna hai? (Jaise 10, 20, 50, 100):\nUPI: 9522856794@fam par payment karein.");
+            if(!amt) return;
+            let utr = prompt("Payment karne ke baad UTR / Transaction ID enter karein:");
+            if(!utr) return;
 
-      if (!matchObj.title || !matchObj.startTime) return alert("Title aur Time zaroori hai!");
+            db.collection("withdrawals_or_deposits").add({
+                userId: auth.currentUser.uid,
+                email: auth.currentUser.email,
+                type: "DEPOSIT",
+                amount: Number(amt),
+                utr: utr,
+                status: "Pending",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Deposit request bhej di gayi hai! Admin verify karke coin add kar dega.");
+            });
+        }
 
-      db.ref('matches').push(matchObj);
-      
-      closeModal('adminModal');
-      alert("Match Published Real-time!");
-    }
+        function openWithdraw() {
+            let upi = prompt("Apni Withdrawal UPI ID enter karein:");
+            if(!upi) return;
+            let amt = prompt("Amount enter karein (Minimum ₹30):");
+            if(!amt || Number(amt) < 30) { alert("Minimum withdrawal ₹30 hai!"); return; }
 
-    function updateRoomInfo(fbKey) {
-      const newRid = document.getElementById(`updateRid-${fbKey}`).value;
-      const newRpass = document.getElementById(`updateRpass-${fbKey}`).value;
+            db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
+                let wallet = doc.data().wallet || 0;
+                if(wallet < Number(amt)) { alert("Insufficient balance!"); return; }
 
-      db.ref(`matches/${fbKey}`).update({
-        roomId: newRid,
-        roomPass: newRpass
-      });
+                db.collection("users").doc(auth.currentUser.uid).update({ wallet: wallet - Number(amt) });
+                db.collection("withdrawals").add({
+                    userId: auth.currentUser.uid,
+                    email: auth.currentUser.email,
+                    upi: upi,
+                    amount: Number(amt),
+                    status: "Pending (24h time)",
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Withdrawal request submitted successfully!");
+                });
+            });
+        }
 
-      alert("Room ID & Password Updated Real-Time!");
-    }
+        function toggleHistory() {
+            let box = document.getElementById('historyBox');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+            loadHistory();
+        }
 
-    function toggleCompleteMatch(fbKey) {
-      const m = globalMatches.find(item => item.fbKey === fbKey);
-      if (m) {
-        db.ref(`matches/${fbKey}`).update({ isCompleted: !m.isCompleted });
-      }
-    }
+        function loadHistory() {
+            let user = auth.currentUser;
+            if(!user) return;
+            db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
+                let html = "";
+                let currentTime = Date.now();
+                snapshot.forEach(doc => {
+                    let d = doc.data();
+                    // 48 hours check (48 * 3600 * 1000 ms)
+                    if(currentTime - d.timestamp > 172800000) {
+                        db.collection("joins").doc(doc.id).delete(); // Auto delete after 48h
+                        return;
+                    }
+                    html += `<p>Match Joined | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
+                });
+                document.getElementById('historyList').innerHTML = html || "No history found.";
+            });
+        }
 
-    function deleteMatch(fbKey) {
-      if (!confirm("Is match ko delete karna chahte hain?")) return;
-      db.ref(`matches/${fbKey}`).remove();
-    }
-
-    function clearAllOldMatches() {
-      if (!confirm("Kya aap saare purane matches ko clear karna chahte hain?")) return;
-      db.ref('matches').remove();
-      db.ref('joins').remove();
-    }
-
-    // INITIAL SETUP CALLS
-    checkEntryLock();
-    listenFirebaseData();
-    loadAdsterraBanner();
-  </script>
-
+        function filterMatches() {
+            let query = document.getElementById('searchMatch').value.toLowerCase();
+            let items = document.querySelectorAll('.match-item');
+            items.forEach(item => {
+                let title = item.getAttribute('data-title');
+                let id = item.getAttribute('data-id');
+                if(title.includes(query) || id.includes(query)) {
+                    item.style.display = "block";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+    </script>
 </body>
 </html>
