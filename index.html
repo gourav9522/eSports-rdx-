@@ -115,7 +115,7 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 99; border-top: 2px solid #30363d; min-height: 50px; display: flex; justify-content: center; align-items: center; }
+    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 999; border-top: 2px solid #30363d; min-height: 50px; display: flex; justify-content: center; align-items: center; }
   </style>
 </head>
 <body>
@@ -219,7 +219,11 @@
 
         <button class="btn btn-success" onclick="createMatch()">Publish Live Match</button>
         
-        <h4 style="color:#58a6ff; margin:15px 0 8px 0; border-top:1px solid #30363d; padding-top:10px;">🛠️ Manage Matches & Update Room Details</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:15px 0 8px 0; border-top:1px solid #30363d; padding-top:10px;">
+          <h4 style="color:#58a6ff;">🛠️ Manage Matches</h4>
+          <button class="btn btn-danger" style="padding:4px 8px; font-size:10px; width:auto; margin-top:0;" onclick="clearAllOldMatches()">🗑 Clear All Matches</button>
+        </div>
+
         <div id="adminMatchManageList" style="max-height:200px; overflow-y:auto;"></div>
 
         <button class="btn btn-danger" onclick="logoutAdmin()" style="margin-top:10px;">Logout Admin</button>
@@ -227,7 +231,7 @@
     </div>
   </div>
 
-  <!-- PERMANENT BANNER AD -->
+  <!-- PERMANENT BANNER AD CONTAINER -->
   <div class="sticky-banner">
     <script src="https://pl29580635.effectivecpmnetwork.com/c5/20/12/c5201286627190e86a9d9523213ad3ec.js"></script>
   </div>
@@ -238,7 +242,6 @@
       databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com"
     };
 
-    // Initialize Firebase
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -247,6 +250,15 @@
     let selectedMatchId = null;
     let globalMatches = [];
     let globalJoins = [];
+
+    // GLOBAL 2 TOUCH/CLICK POPUNDER AD TRIGGER
+    let touchCount = 0;
+    window.addEventListener('click', function() {
+      touchCount++;
+      if (touchCount % 2 === 0) {
+        window.open('https://pl29580634.effectivecpmnetwork.com/0a/4f/ce/0a4fcec91b69363df8ed71bab519db8f.js', '_blank');
+      }
+    });
 
     // Check 24-Hour Entry Lock
     function checkEntryLock() {
@@ -284,17 +296,34 @@
       document.getElementById('mainSiteContent').classList.remove('site-locked');
     }
 
-    // REALTIME FIREBASE LISTENERS (Auto Sync Across All Phones)
+    // REALTIME FIREBASE LISTENERS
     function listenFirebaseData() {
       db.ref('matches').on('value', snapshot => {
         const data = snapshot.val();
-        globalMatches = data ? Object.values(data) : [];
+        globalMatches = [];
+        if (data) {
+          Object.keys(data).forEach(key => {
+            const item = data[key];
+            if (typeof item === 'object' && item !== null) {
+              item.fbKey = key;
+              globalMatches.push(item);
+            }
+          });
+        }
         renderMatches();
       });
 
       db.ref('joins').on('value', snapshot => {
         const data = snapshot.val();
-        globalJoins = data ? Object.values(data) : [];
+        globalJoins = [];
+        if (data) {
+          Object.keys(data).forEach(key => {
+            const item = data[key];
+            if (typeof item === 'object' && item !== null) {
+              globalJoins.push(item);
+            }
+          });
+        }
         renderMatches();
       });
     }
@@ -387,14 +416,14 @@
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <strong style="font-size:13px; color:#fff;">${m.title} (${m.id})</strong>
             <div>
-              <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="toggleCompleteMatch('${m.id}')">${m.isCompleted ? 'Undo' : '✔ Tick'}</button>
-              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="deleteMatch('${m.id}')">🗑 Delete</button>
+              <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="toggleCompleteMatch('${m.fbKey}')">${m.isCompleted ? 'Undo' : '✔ Tick'}</button>
+              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; margin-top:0;" onclick="deleteMatch('${m.fbKey}')">🗑 Delete</button>
             </div>
           </div>
           <div style="display:flex; gap:4px; margin-top:4px;">
-            <input type="text" id="updateRid-${m.id}" placeholder="Room ID" value="${m.roomId || ''}" style="padding:5px; font-size:12px; margin:0;">
-            <input type="text" id="updateRpass-${m.id}" placeholder="Room Pass" value="${m.roomPass || ''}" style="padding:5px; font-size:12px; margin:0;">
-            <button class="btn btn-success" style="padding:5px 8px; font-size:11px; margin-top:0; width:auto;" onclick="updateRoomInfo('${m.id}')">Save</button>
+            <input type="text" id="updateRid-${m.fbKey}" placeholder="Room ID" value="${m.roomId || ''}" style="padding:5px; font-size:12px; margin:0;">
+            <input type="text" id="updateRpass-${m.fbKey}" placeholder="Room Pass" value="${m.roomPass || ''}" style="padding:5px; font-size:12px; margin:0;">
+            <button class="btn btn-success" style="padding:5px 8px; font-size:11px; margin-top:0; width:auto;" onclick="updateRoomInfo('${m.fbKey}')">Save</button>
           </div>
         </div>
       `).join('');
@@ -434,7 +463,6 @@
 
       const joinObj = { matchId: selectedMatchId, ffName, ffUid, ffUpi, time: new Date().toLocaleString() };
       
-      // Save directly to Firebase
       db.ref('joins').push(joinObj);
 
       markMatchAsJoined(selectedMatchId);
@@ -491,9 +519,9 @@
     }
 
     function createMatch() {
-      const matchId = document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4);
+      const customId = document.getElementById('mId').value || 'RDX-' + Date.now().toString().slice(-4);
       const matchObj = {
-        id: matchId,
+        id: customId,
         title: document.getElementById('mTitle').value,
         prize: document.getElementById('mPrize').value,
         winRate: document.getElementById('mWinRate').value,
@@ -507,18 +535,17 @@
 
       if (!matchObj.title || !matchObj.startTime) return alert("Title aur Time zaroori hai!");
 
-      // Save to Firebase Database
-      db.ref('matches/' + matchId).set(matchObj);
+      db.ref('matches').push(matchObj);
       
       closeModal('adminModal');
       alert("Match Published Real-time!");
     }
 
-    function updateRoomInfo(matchId) {
-      const newRid = document.getElementById(`updateRid-${matchId}`).value;
-      const newRpass = document.getElementById(`updateRpass-${matchId}`).value;
+    function updateRoomInfo(fbKey) {
+      const newRid = document.getElementById(`updateRid-${fbKey}`).value;
+      const newRpass = document.getElementById(`updateRpass-${fbKey}`).value;
 
-      db.ref(`matches/${matchId}`).update({
+      db.ref(`matches/${fbKey}`).update({
         roomId: newRid,
         roomPass: newRpass
       });
@@ -526,16 +553,21 @@
       alert("Room ID & Password Updated Real-Time!");
     }
 
-    function toggleCompleteMatch(matchId) {
-      const m = globalMatches.find(item => item.id === matchId);
+    function toggleCompleteMatch(fbKey) {
+      const m = globalMatches.find(item => item.fbKey === fbKey);
       if (m) {
-        db.ref(`matches/${matchId}`).update({ isCompleted: !m.isCompleted });
+        db.ref(`matches/${fbKey}`).update({ isCompleted: !m.isCompleted });
       }
     }
 
-    function deleteMatch(matchId) {
+    function deleteMatch(fbKey) {
       if (!confirm("Is match ko delete karna chahte hain?")) return;
-      db.ref(`matches/${matchId}`).remove();
+      db.ref(`matches/${fbKey}`).remove();
+    }
+
+    function clearAllOldMatches() {
+      if (!confirm("Kya aap saare purane matches ko clear karna chahte hain?")) return;
+      db.ref('matches').remove();
     }
 
     checkEntryLock();
