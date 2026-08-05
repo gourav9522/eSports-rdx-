@@ -27,9 +27,9 @@
       content: "";
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
-      background: url('https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg') no-repeat center center;
-      background-size: contain;
-      opacity: 0.06;
+      background: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000') no-repeat center center;
+      background-size: cover;
+      opacity: 0.05;
       z-index: -1;
       pointer-events: none;
     }
@@ -94,7 +94,7 @@
     input:focus { border-color: #d29922; }
 
     .match-card { background: #161b22; border: 1px solid #30363d; border-radius: 14px; overflow: hidden; margin-bottom: 18px; position: relative; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
-    .match-banner { width: 100%; height: 165px; object-fit: cover; background: #0d1117; border-bottom: 1px solid #30363d; }
+    .match-banner { width: 100%; height: 165px; object-fit: cover; background: #0d1117; border-bottom: 1px solid #30363d; display: block; }
     .match-details { padding: 14px; }
     .match-header { display: flex; justify-content: space-between; align-items: center; }
     .match-title { font-size: 17px; color: #fff; font-weight: bold; }
@@ -115,7 +115,21 @@
 
     .admin-match-item { background: #0d1117; border: 1px solid #30363d; padding: 10px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    .sticky-banner { position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22; text-align: center; z-index: 999; border-top: 2px solid #30363d; min-height: 60px; display: flex; justify-content: center; align-items: center; }
+    .sticky-banner { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      width: 100%; 
+      background: #161b22; 
+      text-align: center; 
+      z-index: 999; 
+      border-top: 2px solid #30363d; 
+      min-height: 60px; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -139,7 +153,7 @@
   <div id="mainSiteContent" class="site-locked">
     <header>
       <div class="brand-logo-title" ondblclick="openAdminModal()">
-        <img src="https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg" alt="eSports RDX Logo">
+        <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=200" alt="eSports RDX Logo" onerror="this.src='https://via.placeholder.com/100/161b22/d29922?text=RDX'">
         <h1>eSports RDX</h1>
       </div>
     </header>
@@ -194,8 +208,8 @@
   </div>
 
   <!-- 5. SECRET ADMIN MODAL (PASSWORD: 9522) -->
-  <div class="modal-overlay" id="adminModal">
-    <div class="modal-box">
+  <div class="modal-overlay" id="adminModal" onclick="preventAdTrigger(event)">
+    <div class="modal-box" onclick="preventAdTrigger(event)">
       <div id="adminAuth">
         <h3 style="color:#d29922; margin-bottom:10px;">🔐 Admin Access</h3>
         <input type="password" id="adminPassInput" placeholder="Enter Admin Password (9522)">
@@ -232,7 +246,7 @@
   </div>
 
   <!-- PERMANENT BANNER AD CONTAINER -->
-  <div class="sticky-banner" id="bannerAdWrapper">
+  <div class="sticky-banner" id="bannerAdContainer">
     <script type="text/javascript">
       atOptions = {
         'key' : 'c5201286627190e86a9d9523213ad3ec',
@@ -260,30 +274,32 @@
     let globalMatches = [];
     let globalJoins = [];
 
-    // GLOBAL 2-CLICK POPUNDER TRIGGER
+    const defaultBannerImg = "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=800";
+
+    // GLOBAL CLICK LISTENER FOR POPUNDER (IGNORING ADMIN PANEL)
     let touchCount = 0;
     window.addEventListener('click', function(e) {
-      // Avoid firing extra trigger on admin modal or inputs
+      // Check if click was inside Admin Modal or Modals
+      if (e.target.closest('#adminModal')) return;
+      
       touchCount++;
       if (touchCount % 2 === 0) {
         triggerNativePopunder();
       }
     });
 
+    function preventAdTrigger(e) {
+      e.stopPropagation();
+    }
+
     function triggerNativePopunder() {
-      // Triggers Popunder via Adsterra Script standard dispatcher
-      if (typeof show_8520261 === 'function') {
-        show_8520261();
-      } else {
-        // Fallback popunder trigger if ad script isn't fully loaded
-        const el = document.createElement('a');
-        el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
-        el.target = '_blank';
-        el.rel = 'noopener';
-        document.body.appendChild(el);
-        el.click();
-        document.body.removeChild(el);
-      }
+      const el = document.createElement('a');
+      el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
+      el.target = '_blank';
+      el.rel = 'noopener';
+      document.body.appendChild(el);
+      el.click();
+      document.body.removeChild(el);
     }
 
     // Check 24-Hour Entry Lock
@@ -322,7 +338,7 @@
       document.getElementById('mainSiteContent').classList.remove('site-locked');
     }
 
-    // REALTIME FIREBASE LISTENERS (Clean Database Fetch)
+    // REALTIME FIREBASE LISTENERS (Clean Pure Firebase Data)
     function listenFirebaseData() {
       db.ref('matches').on('value', snapshot => {
         const data = snapshot.val();
@@ -370,7 +386,7 @@
     function renderMatches() {
       const container = document.getElementById('matchList');
       if (!globalMatches || globalMatches.length === 0) {
-        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>No matches available right now. (Database Clean)</p>";
+        container.innerHTML = "<p style='text-align:center; color:#8b949e; margin-top:30px;'>Abhi koi match available nahi hai.<br><span style='font-size:12px;'>Admin Panel se naya match publish karein.</span></p>";
         return;
       }
 
@@ -393,10 +409,12 @@
           actionBtnHtml = `<button class="btn btn-success" onclick="openJoinModal('${m.id}')">🚀 Join Free</button>`;
         }
 
+        const bannerSrc = m.photo && m.photo.trim() !== "" ? m.photo : defaultBannerImg;
+
         container.innerHTML += `
           <div class="match-card">
             ${isCompleted ? '<div class="status-completed">✔ Completed</div>' : ''}
-            <img src="${m.photo || 'https://archive.org/download/image_5d0ed5192/__ia_thumb.jpg'}" class="match-banner">
+            <img src="${bannerSrc}" class="match-banner" onerror="this.onerror=null; this.src='${defaultBannerImg}';">
             <div class="match-details">
               <div class="match-header">
                 <div class="match-title">${m.title}</div>
@@ -594,6 +612,7 @@
     function clearAllOldMatches() {
       if (!confirm("Kya aap saare purane matches ko clear karna chahte hain?")) return;
       db.ref('matches').remove();
+      db.ref('joins').remove();
     }
 
     checkEntryLock();
