@@ -140,7 +140,7 @@
         ⏳ Ad Viewing Timer: <span id="timerSec">7</span>s
       </div>
 
-      <button class="btn btn-warning" id="watchAdBtn" onclick="triggerPopunderAd()">📺 Watch Ad & Unlock</button>
+      <button class="btn btn-warning" id="watchAdBtn" onclick="triggerPopunderEvery3rdClick(); triggerPopunderAd();">📺 Watch Ad & Unlock</button>
       <button class="btn btn-success" id="okUnlockBtn" onclick="completeUnlock()" style="display:none;">✔ OK (Unlocked)</button>
     </div>
   </div>
@@ -260,20 +260,28 @@
     let selectedMatchId = null;
     let globalMatches = [];
     let globalJoins = [];
+    let clickCount = 0; // Har 3 click par popunder ad open karne ke liye counter
 
     const defaultBannerImg = "data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'800\' height=\'400\' viewBox=\'0 0 800 400\'><rect width=\'100%\' height=\'100%\' fill=\'%23161b22\'/><text x=\'50%\' y=\'45%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'38\' font-weight=\'bold\' fill=\'%23d29922\' font-family=\'sans-serif\'>eSports RDX</text><text x=\'50%\' y=\'60%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-size=\'22\' fill=\'%232ea44f\' font-family=\'sans-serif\'>FREE FIRE TOURNAMENT</text></svg>";
 
-    // STRICT 1-TIME POPUNDER TRIGGER ENGINE
-    function triggerStrictSinglePopunder() {
-      const isAlreadyShown = sessionStorage.getItem('global_popunder_shown');
-      if (!isAlreadyShown) {
-        sessionStorage.setItem('global_popunder_shown', 'true');
-        window.open('https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f', '_blank');
+    // STRICT EVERY 3RD CLICK POPUNDER ENGINE
+    function triggerPopunderEvery3rdClick() {
+      clickCount++; // Har button click par count 1 badhega
+      
+      // Jab bhi clickCount 3, 6, 9, 12... hoga, tabhi ad khulega
+      if (clickCount % 3 === 0) {
+        const el = document.createElement('a');
+        el.href = 'https://www.effectivecpmgate.com/w4p8b0n91?key=0a4fcec91b69363df8ed71bab519db8f';
+        el.target = '_blank';
+        el.rel = 'noopener';
+        document.body.appendChild(el);
+        el.click();
+        document.body.removeChild(el);
       }
     }
 
     function handleButtonAdAction(callback) {
-      triggerStrictSinglePopunder();
+      triggerPopunderEvery3rdClick(); // Check every 3rd click counter
       if (typeof callback === 'function') {
         callback();
       }
@@ -314,8 +322,6 @@
     }
 
     function triggerPopunderAd() {
-      triggerStrictSinglePopunder();
-      
       document.getElementById('watchAdBtn').style.display = 'none';
       document.getElementById('adTimerBox').style.display = 'block';
 
