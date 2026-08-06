@@ -140,7 +140,8 @@
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(e => alert(e.message));
+            auth.signInWithRedirect(provider).catch(e => alert(e.message));
+            
         }
 
         function logout() { auth.signOut(); }
