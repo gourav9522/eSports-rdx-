@@ -206,17 +206,23 @@
 
     <!-- Support Modal -->
     <div id="supportModal" class="modal">
-        <div class="modal-content">
-            <h3 style="color:var(--gold);">Support & Help</h3>
-            <p style="font-size:14px; line-height:1.5; text-align:left;">
-                🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
-                🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br><br>
-                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
-                <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a>
-            </p>
-            <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
-        </div>
+    <div class="modal-content">
+        <h3 style="color:var(--gold);">Support & Help</h3>
+        <p style="font-size:14px; line-height:1.5; text-align:left;">
+            🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
+            🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br><br>
+            💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
+            <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a><br><br>
+            
+            🔗 <b>App Share Link:</b><br>
+            <!-- Yeh link ya text copy aur share hoga -->
+            <input type="text" id="shareAppUrl" value="https://yourwebsite.com/app.html" readonly style="font-size:12px; padding:6px; margin:4px 0;"><br>
+            <button class="btn btn-green" style="padding:6px; font-size:13px; margin-top:2px;" onclick="copyAppUrl()">📋 Copy Link</button>
+            <button class="btn" style="padding:6px; font-size:13px; margin-top:2px; background:#25D366; color:#fff;" onclick="shareOnWhatsApp()">💬 Share on WhatsApp</button>
+        </p>
+        <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
     </div>
+</div>
 
     <!-- Add Money QR Scanner Modal with 2 Min Timer -->
     <div id="addMoneyModal" class="modal">
