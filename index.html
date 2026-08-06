@@ -57,6 +57,7 @@
         }
         .btn-green { background: var(--green); color: #fff; }
         .btn-red { background: var(--red); color: #fff; }
+        .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         input, select {
             width: 100%;
             padding: 10px;
@@ -69,6 +70,7 @@
         }
         .banner-img { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-bottom: 15px; border: 1px solid var(--gold); }
         .flex { display: flex; gap: 10px; }
+        .timer { color: var(--red); font-weight: bold; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -136,12 +138,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let allMatches = [];
-
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithRedirect(provider).catch(e => alert(e.message));
-            
         }
 
         function logout() { auth.signOut(); }
@@ -152,9 +151,11 @@
                 document.getElementById('userSection').style.display = 'block';
                 document.getElementById('userName').innerText = user.displayName;
                 setupUserAccount(user);
+                loadMatches();
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('userSection').style.display = 'none';
+                loadMatches();
             }
         });
 
@@ -168,78 +169,123 @@
             });
         }
 
-        // Load Banner & Settings
         db.collection("settings").doc("config").onSnapshot(doc => {
             if(doc.exists && doc.data().bannerUrl) {
                 document.getElementById('dynamicBanner').src = doc.data().bannerUrl;
             }
         });
 
-        // Load Matches
-        db.collection("matches").onSnapshot(snapshot => {
-            allMatches = [];
-            let html = "";
-
-            snapshot.forEach(doc => {
-                let m = doc.data();
-                m.docId = doc.id;
-                allMatches.push(m);
-
-                if(m.status === "completed") return;
-
-                html += `
-                    <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
-                        <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
-                        <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
-                        <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize} | Win Rate: ${m.winRate || '50%'}</p>
-                        <p>Time: ${m.time}</p>
-                        <p id="room-${m.docId}" style="color:var(--green); font-weight:bold;">Room ID & Pass: Locked (Join karke dekhein)</p>
-                        <button class="btn btn-green" onclick="joinMatch('${m.docId}', ${m.entryFee})">Join Match</button>
-                    </div>
-                `;
-            });
-            document.getElementById('matchesList').innerHTML = html;
-            checkJoinedStatus();
-        });
-
-        function joinMatch(matchId, entryFee) {
+        // Load Matches & Check Joined status per user
+        function loadMatches() {
             let user = auth.currentUser;
-            if(!user) { alert("Pehle login karein!"); return; }
+            
+            db.collection("matches").onSnapshot(snapshot => {
+                let html = "";
+                if(snapshot.empty) {
+                    document.getElementById('matchesList').innerHTML = "<p>No active matches.</p>";
+                    return;
+                }
 
-            let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
-            if(!ffId) return;
+                snapshot.forEach(doc => {
+                    let m = doc.data();
+                    let docId = doc.id;
+                    if(m.status === "completed") return;
 
-            db.collection("users").doc(user.uid).get().then(userDoc => {
-                let wallet = userDoc.data().wallet || 0;
-                if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
+                    let maxSlots = m.maxSlots || 60;
 
-                db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee });
-                db.collection("joins").add({
-                    matchId: matchId,
-                    userId: user.uid,
-                    ffId: ffId,
-                    timestamp: Date.now()
-                }).then(() => {
-                    alert("Successfully Joined Match!");
-                    checkJoinedStatus();
+                    html += `
+                        <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
+                            <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
+                            <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
+                            <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize} | Max Slots: ${maxSlots}</p>
+                            <p>Time: <span class="timer" data-time="${m.time}">${m.time}</span></p>
+                            
+                            <div id="match-action-${docId}">
+                                <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots})">Join Match</button>
+                            </div>
+                            <div id="match-details-${docId}" style="margin-top:8px;"></div>
+                        </div>
+                    `;
+                });
+                document.getElementById('matchesList').innerHTML = html;
+                
+                if(user) {
+                    checkUserJoins(user.uid);
+                }
+            });
+        }
+
+        // Check if user already joined specific matches
+        function checkUserJoins(uid) {
+            db.collection("joins").where("userId", "==", uid).get().then(snapshot => {
+                let joinedMatches = {};
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    joinedMatches[data.matchId] = data;
+                });
+
+                db.collection("matches").get().then(mSnap => {
+                    mSnap.forEach(mDoc => {
+                        let docId = mDoc.id;
+                        let actionDiv = document.getElementById(`match-action-${docId}`);
+                        let detailsDiv = document.getElementById(`match-details-${docId}`);
+
+                        if(actionDiv && detailsDiv) {
+                            if(joinedMatches[docId]) {
+                                let jData = joinedMatches[docId];
+                                actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
+                                detailsDiv.innerHTML = `
+                                    <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
+                                        <p style="margin:2px 0; color:var(--gold);"><b>User:</b> ${auth.currentUser.displayName}</p>
+                                        <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
+                                        <p style="margin:2px 0; color:var(--green);"><b>Room & Pass:</b> ${mDoc.data().roomDetails || 'Will be updated soon'}</p>
+                                    </div>
+                                `;
+                            }
+                        }
+                    });
                 });
             });
         }
 
-        function checkJoinedStatus() {
+        function joinMatch(matchId, entryFee, maxSlots) {
             let user = auth.currentUser;
-            if(!user) return;
-            db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    let j = doc.data();
-                    let roomP = document.getElementById(`room-${j.matchId}`);
-                    if(roomP) {
-                        db.collection("matches").doc(j.matchId).get().then(mDoc => {
-                            if(mDoc.exists) {
-                                roomP.innerText = "Room ID & Pass: " + (mDoc.data().roomDetails || "Admin jald update karega");
-                            }
-                        });
+            if(!user) { alert("Pehle login karein!"); return; }
+
+            // Check if user already joined this match
+            db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
+                if(!existingJoin.empty) {
+                    alert("Aap is match ko pehle hi join kar chuke hain!");
+                    return;
+                }
+
+                // Check slot limits
+                db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
+                    if(joinsSnap.size >= maxSlots) {
+                        alert("Match is Full! Max seat limit reached.");
+                        return;
                     }
+
+                    let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
+                    if(!ffId) return;
+
+                    db.collection("users").doc(user.uid).get().then(userDoc => {
+                        let wallet = userDoc.data().wallet || 0;
+                        if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
+
+                        db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee });
+                        db.collection("joins").add({
+                            matchId: matchId,
+                            userId: user.uid,
+                            userName: user.displayName,
+                            userEmail: user.email,
+                            ffId: ffId,
+                            timestamp: Date.now()
+                        }).then(() => {
+                            alert("Successfully Joined Match!");
+                            loadMatches();
+                        });
+                    });
                 });
             });
         }
@@ -259,7 +305,7 @@
                 status: "Pending",
                 timestamp: Date.now()
             }).then(() => {
-                alert("Deposit request bhej di gayi hai! Admin verify karke coin add kar dega.");
+                alert("Deposit request bhej di gayi hai!");
             });
         }
 
@@ -279,7 +325,7 @@
                     email: auth.currentUser.email,
                     upi: upi,
                     amount: Number(amt),
-                    status: "Pending (24h time)",
+                    status: "Pending",
                     timestamp: Date.now()
                 }).then(() => {
                     alert("Withdrawal request submitted successfully!");
@@ -298,13 +344,8 @@
             if(!user) return;
             db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
                 let html = "";
-                let currentTime = Date.now();
                 snapshot.forEach(doc => {
                     let d = doc.data();
-                    if(currentTime - d.timestamp > 172800000) {
-                        db.collection("joins").doc(doc.id).delete();
-                        return;
-                    }
                     html += `<p>Match Joined | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
                 });
                 document.getElementById('historyList').innerHTML = html || "No history found.";
@@ -327,4 +368,3 @@
     </script>
 </body>
 </html>
-
