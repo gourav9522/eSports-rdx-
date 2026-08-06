@@ -26,16 +26,45 @@
         }
         header {
             background: rgba(22, 27, 34, 0.95);
-            padding: 15px;
-            text-align: center;
+            padding: 12px 15px;
             border-bottom: 2px solid var(--gold);
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 15px;
+            justify-content: space-between;
         }
-        header img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--gold); }
-        h1 { color: var(--gold); margin: 0; font-size: 22px; }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-left img { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--gold); }
+        .user-greeting { font-size: 14px; color: var(--gold); font-weight: bold; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .mini-btn {
+            background: #1f6feb;
+            color: #fff;
+            border: none;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .coin-badge {
+            background: rgba(46, 164, 79, 0.2);
+            border: 1px solid var(--green);
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: var(--green);
+            font-weight: bold;
+            font-size: 13px;
+        }
+
         .container { padding: 15px; max-width: 600px; margin: auto; }
         .card {
             background: rgba(22, 27, 34, 0.95);
@@ -57,7 +86,6 @@
         }
         .btn-green { background: var(--green); color: #fff; }
         .btn-red { background: var(--red); color: #fff; }
-        .btn-blue { background: #1f6feb; color: #fff; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         input, select {
             width: 100%;
@@ -89,7 +117,7 @@
             transition: width 0.4s ease;
         }
 
-        /* Modal Styling for Support & Scanner */
+        /* Modal Styling */
         .modal {
             display: none;
             position: fixed;
@@ -116,9 +144,19 @@
 </head>
 <body>
 
+    <!-- Professional Top Header with User on Left, Support & Coins on Right -->
     <header>
-        <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
-        <h1>eSports RDX</h1>
+        <div class="header-left">
+            <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
+            <div>
+                <div style="font-size:11px; color:var(--text-gray);">Welcome</div>
+                <div id="topUserName" class="user-greeting">Guest User</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="mini-btn" onclick="openSupportModal()">Support</button>
+            <div class="coin-badge">₹<span id="topUserWallet">0</span></div>
+        </div>
     </header>
 
     <div class="container">
@@ -133,17 +171,14 @@
             <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
         </div>
 
-        <!-- User Dashboard -->
+        <!-- User Wallet Management Section (Visible after login) -->
         <div id="userSection" class="card" style="display:none;">
-            <p>User: <span id="userName" style="color: var(--gold); font-weight:bold;"></span></p>
-            <p>Wallet: ₹<span id="userWallet" style="color: var(--green); font-weight:bold;">0</span></p>
             <div class="flex">
                 <button class="btn btn-green" onclick="openAddMoneyModal()">Add Money</button>
                 <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
             </div>
             <div class="flex" style="margin-top:5px;">
-                <button class="btn btn-blue" onclick="openSupportModal()">Support / Help</button>
-                <button class="btn" style="background:#21262d; color:#fff;" onclick="toggleHistory()">History</button>
+                <button class="btn" style="background:#21262d; color:#fff; width:100%;" onclick="toggleHistory()">My Joined History</button>
             </div>
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
@@ -166,7 +201,7 @@
         <div class="modal-content">
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:14px; line-height:1.5; text-align:left;">
-                🇮🇳 <b>Hindi:</b> agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
+                🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br><br>
                 💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
                 <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a>
@@ -220,22 +255,25 @@
             if (user) {
                 document.getElementById('authSection').style.display = 'none';
                 document.getElementById('userSection').style.display = 'block';
-                document.getElementById('userName').innerText = user.displayName;
+                document.getElementById('topUserName').innerText = user.displayName;
                 setupUserAccount(user);
                 loadMatches();
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('userSection').style.display = 'none';
+                document.getElementById('topUserName').innerText = "Guest User";
+                document.getElementById('topUserWallet').innerText = "0";
                 loadMatches();
             }
         });
 
         function setupUserAccount(user) {
-            db.collection("users").doc(user.uid).get().then(doc => {
+            db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
+                    document.getElementById('topUserWallet').innerText = "0";
                 } else {
-                    document.getElementById('userWallet').innerText = doc.data().wallet || 0;
+                    document.getElementById('topUserWallet').innerText = doc.data().wallet || 0;
                 }
             });
         }
@@ -246,7 +284,7 @@
             }
         });
 
-        // Load Matches with Live Slot Count & Progress Bar
+        // Load Active Matches & Auto-Filter Completed Matches
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -267,6 +305,8 @@
                     snapshot.forEach(doc => {
                         let m = doc.data();
                         let docId = doc.id;
+                        
+                        // Automatically skip and hide completed matches
                         if(m.status === "completed") return;
 
                         let maxSlots = m.maxSlots || 60;
@@ -292,7 +332,7 @@
                             </div>
                         `;
                     });
-                    document.getElementById('matchesList').innerHTML = html;
+                    document.getElementById('matchesList').innerHTML = html || "<p>No active matches available right now.</p>";
                     
                     if(user) {
                         checkUserJoins(user.uid);
@@ -312,6 +352,11 @@
                 db.collection("matches").get().then(mSnap => {
                     mSnap.forEach(mDoc => {
                         let docId = mDoc.id;
+                        let mData = mDoc.data();
+                        
+                        // If match is completed, don't show details
+                        if(mData.status === "completed") return;
+
                         let actionDiv = document.getElementById(`match-action-${docId}`);
                         let detailsDiv = document.getElementById(`match-details-${docId}`);
 
@@ -323,7 +368,7 @@
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
                                         <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
-                                        <p style="margin:2px 0; color:var(--green);"><b>Room & Pass:</b> ${mDoc.data().roomDetails || 'Will be updated soon'}</p>
+                                        <p style="margin:2px 0; color:var(--green);"><b>Room & Pass:</b> ${mData.roomDetails || 'Will be updated soon'}</p>
                                     </div>
                                 `;
                             }
@@ -460,16 +505,39 @@
             loadHistory();
         }
 
+        // Only active/non-completed joined matches will show in history
         function loadHistory() {
             let user = auth.currentUser;
             if(!user) return;
+
             db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
-                let html = "";
+                let matchIds = [];
+                let joinDocs = {};
                 snapshot.forEach(doc => {
                     let d = doc.data();
-                    html += `<p>Match Joined | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
+                    matchIds.push(d.matchId);
+                    joinDocs[d.matchId] = d;
                 });
-                document.getElementById('historyList').innerHTML = html || "No history found.";
+
+                if(matchIds.length === 0) {
+                    document.getElementById('historyList').innerHTML = "No history found.";
+                    return;
+                }
+
+                db.collection("matches").get().then(mSnap => {
+                    let html = "";
+                    mSnap.forEach(mDoc => {
+                        let mData = mDoc.data();
+                        let docId = mDoc.id;
+                        
+                        // If match exists in user joins and is NOT completed, show in history
+                        if(joinDocs[docId] && mData.status !== "completed") {
+                            let d = joinDocs[docId];
+                            html += `<p><b>${mData.title}</b> | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
+                        }
+                    });
+                    document.getElementById('historyList').innerHTML = html || "No active joined matches in history.";
+                });
             });
         }
 
