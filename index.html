@@ -121,20 +121,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
-        authDomain: "ad-g-55646.firebaseapp.com",
-        databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com",
-        projectId: "ad-g-55646",
-        storageBucket: "ad-g-55646.firebasestorage.app",
-        messagingSenderId: "519103871395",
-        appId: "1:519103871395:web:21b967c0dc5e646d9d8216",
-        measurementId: "G-L4R8KEVLGY"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-</script>
-
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
+            authDomain: "ad-g-55646.firebaseapp.com",
+            databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com",
+            projectId: "ad-g-55646",
+            storageBucket: "ad-g-55646.firebasestorage.app",
+            messagingSenderId: "519103871395",
+            appId: "1:519103871395:web:21b967c0dc5e646d9d8216",
+            measurementId: "G-L4R8KEVLGY"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -183,14 +178,13 @@
         db.collection("matches").onSnapshot(snapshot => {
             allMatches = [];
             let html = "";
-            let currentTime = Date.now();
 
             snapshot.forEach(doc => {
                 let m = doc.data();
                 m.docId = doc.id;
                 allMatches.push(m);
 
-                if(m.status === "completed") return; // Skip completed matches
+                if(m.status === "completed") return;
 
                 html += `
                     <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
@@ -218,7 +212,6 @@
                 let wallet = userDoc.data().wallet || 0;
                 if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
 
-                // Deduct & Join
                 db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee });
                 db.collection("joins").add({
                     matchId: matchId,
@@ -240,7 +233,6 @@
                     let j = doc.data();
                     let roomP = document.getElementById(`room-${j.matchId}`);
                     if(roomP) {
-                        // Fetch room details for this match
                         db.collection("matches").doc(j.matchId).get().then(mDoc => {
                             if(mDoc.exists) {
                                 roomP.innerText = "Room ID & Pass: " + (mDoc.data().roomDetails || "Admin jald update karega");
@@ -308,9 +300,8 @@
                 let currentTime = Date.now();
                 snapshot.forEach(doc => {
                     let d = doc.data();
-                    // 48 hours check (48 * 3600 * 1000 ms)
                     if(currentTime - d.timestamp > 172800000) {
-                        db.collection("joins").doc(doc.id).delete(); // Auto delete after 48h
+                        db.collection("joins").doc(doc.id).delete();
                         return;
                     }
                     html += `<p>Match Joined | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
@@ -335,3 +326,4 @@
     </script>
 </body>
 </html>
+
