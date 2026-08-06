@@ -86,6 +86,7 @@
         }
         .btn-green { background: var(--green); color: #fff; }
         .btn-red { background: var(--red); color: #fff; }
+        .btn-gold { background: var(--gold); color: #000; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         input, select {
             width: 100%;
@@ -178,7 +179,8 @@
                 <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
             </div>
             <div class="flex" style="margin-top:5px;">
-                <button class="btn" style="background:#21262d; color:#fff; width:100%;" onclick="toggleHistory()">My Joined History</button>
+                <button class="btn" style="background:#21262d; color:#fff; width:50%;" onclick="toggleHistory()">My Joined History</button>
+                <button class="btn btn-gold" style="width:50%; margin-top:8px;" onclick="toggleWithdrawalHistory()">Withdrawal History</button>
             </div>
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
@@ -187,6 +189,12 @@
         <div id="historyBox" class="card" style="display:none;">
             <h3>Joined Matches History</h3>
             <div id="historyList">Loading history...</div>
+        </div>
+
+        <!-- Withdrawal History Box -->
+        <div id="withdrawalHistoryBox" class="card" style="display:none;">
+            <h3>Withdrawal History</h3>
+            <div id="withdrawalHistoryList">Loading withdrawal history...</div>
         </div>
 
         <!-- Search Bar -->
@@ -306,7 +314,6 @@
                         let m = doc.data();
                         let docId = doc.id;
                         
-                        // Automatically skip and hide completed matches
                         if(m.status === "completed") return;
 
                         let maxSlots = m.maxSlots || 60;
@@ -354,7 +361,6 @@
                         let docId = mDoc.id;
                         let mData = mDoc.data();
                         
-                        // If match is completed, don't show details
                         if(mData.status === "completed") return;
 
                         let actionDiv = document.getElementById(`match-action-${docId}`);
@@ -418,7 +424,6 @@
             });
         }
 
-        // Support Modal Functions
         function openSupportModal() {
             document.getElementById('supportModal').style.display = 'flex';
         }
@@ -426,10 +431,9 @@
             document.getElementById('supportModal').style.display = 'none';
         }
 
-        // Add Money Modal & 2 Min Timer Functions
         function openAddMoneyModal() {
             document.getElementById('addMoneyModal').style.display = 'flex';
-            startPaymentTimer(120); // 2 Minutes = 120 seconds
+            startPaymentTimer(120);
         }
         function closeAddMoneyModal() {
             document.getElementById('addMoneyModal').style.display = 'none';
@@ -495,6 +499,9 @@
                     timestamp: Date.now()
                 }).then(() => {
                     alert("Withdrawal request submitted successfully!");
+                    if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
+                        loadWithdrawalHistory();
+                    }
                 });
             });
         }
@@ -505,7 +512,12 @@
             loadHistory();
         }
 
-        // Only active/non-completed joined matches will show in history
+        function toggleWithdrawalHistory() {
+            let box = document.getElementById('withdrawalHistoryBox');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+            loadWithdrawalHistory();
+        }
+
         function loadHistory() {
             let user = auth.currentUser;
             if(!user) return;
@@ -530,7 +542,6 @@
                         let mData = mDoc.data();
                         let docId = mDoc.id;
                         
-                        // If match exists in user joins and is NOT completed, show in history
                         if(joinDocs[docId] && mData.status !== "completed") {
                             let d = joinDocs[docId];
                             html += `<p><b>${mData.title}</b> | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
@@ -538,6 +549,46 @@
                     });
                     document.getElementById('historyList').innerHTML = html || "No active joined matches in history.";
                 });
+            });
+        }
+
+        // Withdrawal History with 24 hours auto-delete logic & timer
+        function loadWithdrawalHistory() {
+            let user = auth.currentUser;
+            if(!user) return;
+
+            db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
+                let html = "";
+                let currentTime = Date.now();
+                let twentyFourHours = 24 * 60 * 60 * 1000; // 24 Hours in milliseconds
+
+                snapshot.forEach(doc => {
+                    let w = doc.data();
+                    let wId = doc.id;
+                    let timeElapsed = currentTime - (w.timestamp || currentTime);
+
+                    // Agar 24 ghante se jyada ho gaye hain toh database se automatically delete kar do
+                    if (timeElapsed >= twentyFourHours) {
+                        db.collection("withdrawals").doc(wId).delete();
+                        return;
+                    }
+
+                    // Bacha hua time calculate karein (24 hours - time elapsed)
+                    let timeLeft = twentyFourHours - timeElapsed;
+                    let hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                    let minsLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+                    html += `
+                        <div style="font-size:13px; margin-bottom:8px;">
+                            <p style="margin:2px 0;"><b>Amount:</b> ₹${w.amount} | <b>UPI:</b> ${w.upi}</p>
+                            <p style="margin:2px 0;"><b>Status:</b> <span style="color:var(--gold);">${w.status}</span></p>
+                            <p style="margin:2px 0; color:var(--red);"><b>Auto-Delete in:</b> ${hoursLeft}h ${minsLeft}m</p>
+                        </div>
+                        <hr style="border-color:#30363d">
+                    `;
+                });
+
+                document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
             });
         }
 
