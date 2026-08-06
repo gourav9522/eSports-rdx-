@@ -57,6 +57,7 @@
         }
         .btn-green { background: var(--green); color: #fff; }
         .btn-red { background: var(--red); color: #fff; }
+        .btn-blue { background: #1f6feb; color: #fff; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         input, select {
             width: 100%;
@@ -71,6 +72,46 @@
         .banner-img { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-bottom: 15px; border: 1px solid var(--gold); }
         .flex { display: flex; gap: 10px; }
         .timer { color: var(--red); font-weight: bold; font-size: 14px; }
+        
+        /* Progress Bar Styling */
+        .progress-container {
+            width: 100%;
+            background-color: #30363d;
+            border-radius: 4px;
+            overflow: hidden;
+            height: 10px;
+            margin: 8px 0 4px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: var(--green);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        /* Modal Styling for Support & Scanner */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #161b22;
+            border: 1px solid var(--gold);
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -97,11 +138,14 @@
             <p>User: <span id="userName" style="color: var(--gold); font-weight:bold;"></span></p>
             <p>Wallet: ₹<span id="userWallet" style="color: var(--green); font-weight:bold;">0</span></p>
             <div class="flex">
-                <button class="btn btn-green" onclick="openAddMoney()">Add Money</button>
+                <button class="btn btn-green" onclick="openAddMoneyModal()">Add Money</button>
                 <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
             </div>
-            <button class="btn" style="background:#21262d; color:#fff; margin-top:10px;" onclick="toggleHistory()">My Joined History</button>
-            <button class="btn btn-red" style="margin-top:5px;" onclick="logout()">Logout</button>
+            <div class="flex" style="margin-top:5px;">
+                <button class="btn btn-blue" onclick="openSupportModal()">Support / Help</button>
+                <button class="btn" style="background:#21262d; color:#fff;" onclick="toggleHistory()">History</button>
+            </div>
+            <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
         <!-- History Modal / Box -->
@@ -115,6 +159,32 @@
 
         <h2>Tournaments</h2>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- Support Modal -->
+    <div id="supportModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Support & Help</h3>
+            <p style="font-size:14px; line-height:1.5; text-align:left;">
+                🇮🇳 <b>Hindi:</b> agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
+                🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br><br>
+                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
+                <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a>
+            </p>
+            <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Add Money QR Scanner Modal with 2 Min Timer -->
+    <div id="addMoneyModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Add Money via QR</h3>
+            <p>UPI ID: <b style="color:var(--green);">9522856794@fam</b></p>
+            <img src="https://archive.org/download/img-20260731-wa-0001/__ia_thumb.jpg" style="width:180px; height:180px; border-radius:8px; border:2px solid var(--gold); margin:10px 0;" alt="Scanner">
+            <p style="font-size:14px;">Time Left to Pay: <span id="paymentTimer" class="timer">02:00</span></p>
+            <button class="btn btn-green" onclick="submitDepositProof()">I Have Paid (Submit UTR)</button>
+            <button class="btn btn-red" onclick="closeAddMoneyModal()">Cancel</button>
+        </div>
     </div>
 
     <!-- Firebase SDKs -->
@@ -137,6 +207,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        let timerInterval;
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -175,47 +246,61 @@
             }
         });
 
-        // Load Matches & Check Joined status per user
+        // Load Matches with Live Slot Count & Progress Bar
         function loadMatches() {
             let user = auth.currentUser;
             
             db.collection("matches").onSnapshot(snapshot => {
-                let html = "";
                 if(snapshot.empty) {
                     document.getElementById('matchesList').innerHTML = "<p>No active matches.</p>";
                     return;
                 }
 
-                snapshot.forEach(doc => {
-                    let m = doc.data();
-                    let docId = doc.id;
-                    if(m.status === "completed") return;
+                db.collection("joins").get().then(joinsSnap => {
+                    let joinCounts = {};
+                    joinsSnap.forEach(jDoc => {
+                        let mId = jDoc.data().matchId;
+                        joinCounts[mId] = (joinCounts[mId] || 0) + 1;
+                    });
 
-                    let maxSlots = m.maxSlots || 60;
+                    let html = "";
+                    snapshot.forEach(doc => {
+                        let m = doc.data();
+                        let docId = doc.id;
+                        if(m.status === "completed") return;
 
-                    html += `
-                        <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
-                            <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
-                            <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
-                            <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize} | Max Slots: ${maxSlots}</p>
-                            <p>Time: <span class="timer" data-time="${m.time}">${m.time}</span></p>
-                            
-                            <div id="match-action-${docId}">
-                                <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots})">Join Match</button>
+                        let maxSlots = m.maxSlots || 60;
+                        let filledCount = joinCounts[docId] || 0;
+                        let percent = (filledCount / maxSlots) * 100;
+                        if(percent > 100) percent = 100;
+
+                        html += `
+                            <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
+                                <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
+                                <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
+                                <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize}</p>
+                                <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width: ${percent}%;"></div>
+                                </div>
+                                <p>Time: <span class="timer">${m.time}</span></p>
+                                
+                                <div id="match-action-${docId}">
+                                    <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots})">Join Match</button>
+                                </div>
+                                <div id="match-details-${docId}" style="margin-top:8px;"></div>
                             </div>
-                            <div id="match-details-${docId}" style="margin-top:8px;"></div>
-                        </div>
-                    `;
+                        `;
+                    });
+                    document.getElementById('matchesList').innerHTML = html;
+                    
+                    if(user) {
+                        checkUserJoins(user.uid);
+                    }
                 });
-                document.getElementById('matchesList').innerHTML = html;
-                
-                if(user) {
-                    checkUserJoins(user.uid);
-                }
             });
         }
 
-        // Check if user already joined specific matches
         function checkUserJoins(uid) {
             db.collection("joins").where("userId", "==", uid).get().then(snapshot => {
                 let joinedMatches = {};
@@ -236,7 +321,7 @@
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
-                                        <p style="margin:2px 0; color:var(--gold);"><b>User:</b> ${auth.currentUser.displayName}</p>
+                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room & Pass:</b> ${mDoc.data().roomDetails || 'Will be updated soon'}</p>
                                     </div>
@@ -252,14 +337,12 @@
             let user = auth.currentUser;
             if(!user) { alert("Pehle login karein!"); return; }
 
-            // Check if user already joined this match
             db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
                 if(!existingJoin.empty) {
                     alert("Aap is match ko pehle hi join kar chuke hain!");
                     return;
                 }
 
-                // Check slot limits
                 db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
                     if(joinsSnap.size >= maxSlots) {
                         alert("Match is Full! Max seat limit reached.");
@@ -290,10 +373,47 @@
             });
         }
 
-        function openAddMoney() {
-            let amt = prompt("Kitna amount add karna hai? (Jaise 10, 20, 50, 100):\nUPI: 9522856794@fam par payment karein.");
+        // Support Modal Functions
+        function openSupportModal() {
+            document.getElementById('supportModal').style.display = 'flex';
+        }
+        function closeSupportModal() {
+            document.getElementById('supportModal').style.display = 'none';
+        }
+
+        // Add Money Modal & 2 Min Timer Functions
+        function openAddMoneyModal() {
+            document.getElementById('addMoneyModal').style.display = 'flex';
+            startPaymentTimer(120); // 2 Minutes = 120 seconds
+        }
+        function closeAddMoneyModal() {
+            document.getElementById('addMoneyModal').style.display = 'none';
+            clearInterval(timerInterval);
+        }
+
+        function startPaymentTimer(duration) {
+            let timer = duration, minutes, seconds;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                document.getElementById('paymentTimer').textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('paymentTimer').textContent = "Time Expired!";
+                }
+            }, 1000);
+        }
+
+        function submitDepositProof() {
+            let amt = prompt("Kitna amount pay kiya hai? (Enter amount):");
             if(!amt) return;
-            let utr = prompt("Payment karne ke baad UTR / Transaction ID enter karein:");
+            let utr = prompt("Payment ka UTR / Transaction ID enter karein:");
             if(!utr) return;
 
             db.collection("withdrawals_or_deposits").add({
@@ -305,7 +425,8 @@
                 status: "Pending",
                 timestamp: Date.now()
             }).then(() => {
-                alert("Deposit request bhej di gayi hai!");
+                alert("Deposit request bhej di gayi hai! 2-3 ghante me coins add ho jayenge.");
+                closeAddMoneyModal();
             });
         }
 
