@@ -230,7 +230,7 @@
         <!-- Search Bar -->
         <input type="text" id="searchMatch" placeholder="Search by Match Title or ID..." onkeyup="filterMatches()">
 
-        <!-- 4 Map Categories Below Search Bar -->
+        <!-- 4 Map Categories Below Search Bar (Clicking shows that category matches) -->
         <div class="maps-grid">
             <div class="map-card" onclick="filterByCategory('lone wolf')">
                 <img src="https://archive.org/download/sddefault_20260629/sddefault.jpg" alt="Lone Wolf">
@@ -251,8 +251,8 @@
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Tournaments</h2>
-            <button class="mini-btn" onclick="resetFilter()" style="background:#30363d;">Show All</button>
+            <h2 id="sectionTitle">Joined Matches</h2>
+            <button class="mini-btn" onclick="showJoinedMatchesOnly()" style="background:#30363d;">My Joined</button>
         </div>
         <div id="matchesList">Loading matches...</div>
     </div>
@@ -326,6 +326,15 @@
         let timerInterval;
         let monthlyVideoUrlGlobal = "";
         let notifiedRooms = {}; 
+        let currentFilterMode = 'joined'; // Default mode: only show joined matches on home screen
+
+        // Map photos ka automatic reference dictionary (Wahi photos jo category cards me hain)
+        const mapPhotos = {
+            'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
+            'battle royal': 'https://archive.org/download/3442-free-fire-battle-royale-guide/3442_Free-Fire_Battle-Royale-Guide.jpg',
+            'headshot': 'https://archive.org/download/screenshot-20260629-171015-facebook/Screenshot_20260629-171015_Facebook.png',
+            'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
+        };
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -387,7 +396,7 @@
             document.getElementById('monthlyEventModal').style.display = 'none';
         }
 
-        // Load Active Matches (Only Joined Matches shown if user is logged in and joined)
+        // Load Matches function with automatic match theme mapping based on title
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -418,9 +427,17 @@
                         
                         if(m.status === "completed") return;
 
-                        // Agar user logged in hai, toh sirf wahi matches dikhe jo user ne join kiye hain
-                        if(user && !userJoinedMatches[docId]) {
-                            return; 
+                        let titleLower = m.title.toLowerCase();
+
+                        // Filtering logic (joined vs category filter)
+                        if (currentFilterMode === 'joined') {
+                            if (!user || !userJoinedMatches[docId]) {
+                                return; // Sirf wahi dikhao jo user ne join kiye hain
+                            }
+                        } else {
+                            if (!titleLower.includes(currentFilterMode)) {
+                                return;
+                            }
                         }
 
                         let maxSlots = m.maxSlots || 60;
@@ -430,12 +447,25 @@
 
                         let feeDisplay = m.entryFee === 0 ? '<span style="color:var(--green); font-weight:bold;">FREE Match</span>' : `Entry Fee: ₹${m.entryFee}`;
 
-                        // Admin panel se jo map/match ka photo URL aayega wahi yaha dynamically set hoga
-                        let matchPhoto = m.photoUrl || m.bannerUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg';
+                        // AUTOMATIC THEME BANNER LOGIC:
+                        // Agar match ke naam me map ka naam match karega, toh wahi map photo automatic banner ban jayegi.
+                        let autoPhoto = 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'; // default
+                        if (titleLower.includes('lone wolf')) {
+                            autoPhoto = mapPhotos['lone wolf'];
+                        } else if (titleLower.includes('battle royal') || titleLower.includes('battle royale')) {
+                            autoPhoto = mapPhotos['battle royal'];
+                        } else if (titleLower.includes('headshot')) {
+                            autoPhoto = mapPhotos['headshot'];
+                        } else if (titleLower.includes('classic squad') || titleLower.includes('squad')) {
+                            autoPhoto = mapPhotos['classic squad'];
+                        }
+
+                        // Agar admin ne alag se photo di hai toh wo, warna automatic match theme photo
+                        let matchPhoto = m.photoUrl || m.bannerUrl || autoPhoto;
 
                         html += `
-                            <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
-                                <img src="${matchPhoto}" class="banner-img" style="height:100px;">
+                            <div class="card match-item" data-title="${titleLower}" data-id="${m.matchId.toLowerCase()}">
+                                <img src="${matchPhoto}" class="banner-img" style="height:120px;">
                                 <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
                                 <p>${feeDisplay} | Prize: ₹${m.prize}</p>
                                 <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
@@ -452,7 +482,8 @@
                         `;
                     });
                     
-                    document.getElementById('matchesList').innerHTML = html || (user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Tournaments join karein taaki wo yahan dikhein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>");
+                    let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Upar diye gaye kisi bhi map par click karke tournaments explore karein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>";
+                    document.getElementById('matchesList').innerHTML = html || defaultMsg;
                     
                     if(user) {
                         checkUserJoins(user.uid);
@@ -679,6 +710,7 @@
             });
         }
 
+        // Search Bar Handler
         function filterMatches() {
             let query = document.getElementById('searchMatch').value.toLowerCase();
             let items = document.querySelectorAll('.match-item');
@@ -693,23 +725,19 @@
             });
         }
 
+        // Map Category Click Filter Handler
         function filterByCategory(category) {
-            let query = category.toLowerCase();
-            let items = document.querySelectorAll('.match-item');
-            items.forEach(item => {
-                let title = item.getAttribute('data-title');
-                if(title.includes(query)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
-            });
+            currentFilterMode = category.toLowerCase();
+            document.getElementById('sectionTitle').innerText = category.toUpperCase() + " Matches";
+            loadMatches();
         }
 
-        function resetFilter() {
+        // Reset to Joined Matches Only view
+        function showJoinedMatchesOnly() {
+            currentFilterMode = 'joined';
+            document.getElementById('sectionTitle').innerText = "Joined Matches";
             document.getElementById('searchMatch').value = '';
-            let items = document.querySelectorAll('.match-item');
-            items.forEach(item => item.style.display = "block");
+            loadMatches();
         }
 
         function copyAppUrl() {
