@@ -196,6 +196,13 @@
             <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" class="banner-img" id="dynamicBanner">
         </div>
 
+        <!-- Monthly Event Button Section -->
+        <div class="card" style="text-align: center; background: linear-gradient(135deg, #161b22, #1f242d); border: 2px solid var(--gold);">
+            <h3 style="color: var(--gold); margin-top: 0;">🔥 Monthly Special Event</h3>
+            <p style="font-size: 13px; color: var(--text-gray);">Watch official monthly tournament live streams or event videos!</p>
+            <button class="btn btn-gold" onclick="openMonthlyEventModal()">View Monthly Event</button>
+        </div>
+
         <!-- Auth Section -->
         <div id="authSection" class="card" style="text-align: center;">
             <h3>Login to Continue</h3>
@@ -248,6 +255,17 @@
             <button class="mini-btn" onclick="resetFilter()" style="background:#30363d;">Show All</button>
         </div>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- Monthly Event Video Modal -->
+    <div id="monthlyEventModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Monthly Event Video</h3>
+            <div id="monthlyVideoContainer" style="margin: 10px 0;">
+                <p style="font-size: 13px; color: var(--text-gray);">Loading video...</p>
+            </div>
+            <button class="btn btn-red" onclick="closeMonthlyEventModal()">Close</button>
+        </div>
     </div>
 
     <!-- Support Modal -->
@@ -306,6 +324,8 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let timerInterval;
+        let monthlyVideoUrlGlobal = "";
+        let notifiedRooms = {}; // Track notifications to prevent repeating
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -341,13 +361,34 @@
             });
         }
 
+        // Load Settings (Banner & Monthly Video)
         db.collection("settings").doc("config").onSnapshot(doc => {
-            if(doc.exists && doc.data().bannerUrl) {
-                document.getElementById('dynamicBanner').src = doc.data().bannerUrl;
+            if(doc.exists) {
+                let data = doc.data();
+                if(data.bannerUrl) {
+                    document.getElementById('dynamicBanner').src = data.bannerUrl;
+                }
+                if(data.monthlyVideoUrl) {
+                    monthlyVideoUrlGlobal = data.monthlyVideoUrl;
+                }
             }
         });
 
-        // Load Active Matches & Show Room ID Directly on Home Screen if Joined
+        function openMonthlyEventModal() {
+            document.getElementById('monthlyEventModal').style.display = 'flex';
+            let container = document.getElementById('monthlyVideoContainer');
+            if(monthlyVideoUrlGlobal) {
+                container.innerHTML = `<iframe width="100%" height="220" src="${monthlyVideoUrlGlobal}" frameborder="0" allowfullscreen style="border-radius:6px;"></iframe>`;
+            } else {
+                container.innerHTML = `<p style="color:var(--red);">No event video uploaded by admin yet!</p>`;
+            }
+        }
+
+        function closeMonthlyEventModal() {
+            document.getElementById('monthlyEventModal').style.display = 'none';
+        }
+
+        // Load Active Matches & Real-time Room ID Notification Alert
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -427,11 +468,23 @@
                             if(joinedMatches[docId]) {
                                 let jData = joinedMatches[docId];
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
+                                
+                                let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
+                                
+                                // Automatic Mobile Notification Alert when Room ID is updated by admin
+                                if (mData.roomDetails && mData.roomDetails !== 'Pending') {
+                                    let notifKey = docId + "_" + mData.roomDetails;
+                                    if (!notifiedRooms[notifKey]) {
+                                        notifiedRooms[notifKey] = true;
+                                        alert(`🚨 Room ID & Password Updated for Match: ${mData.title}!\nRoom Details: ${mData.roomDetails}`);
+                                    }
+                                }
+
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
                                         <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
-                                        <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin'}</p>
+                                        <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
                                     </div>
                                 `;
                             }
@@ -474,7 +527,7 @@
                                 ffId: ffId,
                                 timestamp: Date.now()
                             }).then(() => {
-                                alert(`Successfully Joined ${matchTitle}! Notification sent.`);
+                                alert(`Successfully Joined ${matchTitle}!`);
                                 loadMatches();
                             });
                         });
