@@ -102,6 +102,36 @@
         .flex { display: flex; gap: 10px; }
         .timer { color: var(--red); font-weight: bold; font-size: 14px; }
         
+        /* Map Categories Grid */
+        .maps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .map-card {
+            background: #1f242d;
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .map-card:hover { transform: scale(1.02); }
+        .map-card img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+        .map-card h4 {
+            color: var(--gold);
+            font-size: 13px;
+            margin: 6px 0 2px 0;
+        }
+
         /* Progress Bar Styling */
         .progress-container {
             width: 100%;
@@ -179,16 +209,9 @@
                 <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
             </div>
             <div class="flex" style="margin-top:5px;">
-                <button class="btn" style="background:#21262d; color:#fff; width:50%;" onclick="toggleHistory()">My Joined History</button>
-                <button class="btn btn-gold" style="width:50%; margin-top:8px;" onclick="toggleWithdrawalHistory()">Withdrawal History</button>
+                <button class="btn btn-gold" style="width:100%; margin-top:8px;" onclick="toggleWithdrawalHistory()">Withdrawal History</button>
             </div>
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
-        </div>
-
-        <!-- History Modal / Box -->
-        <div id="historyBox" class="card" style="display:none;">
-            <h3>Joined Matches History</h3>
-            <div id="historyList">Loading history...</div>
         </div>
 
         <!-- Withdrawal History Box -->
@@ -200,29 +223,55 @@
         <!-- Search Bar -->
         <input type="text" id="searchMatch" placeholder="Search by Match Title or ID..." onkeyup="filterMatches()">
 
-        <h2>Tournaments</h2>
+        <!-- 4 Map Categories Below Search Bar -->
+        <div class="maps-grid">
+            <div class="map-card" onclick="filterByCategory('lone wolf')">
+                <img src="https://archive.org/download/sddefault_20260629/sddefault.jpg" alt="Lone Wolf">
+                <h4>Lone Wolf</h4>
+            </div>
+            <div class="map-card" onclick="filterByCategory('battle royal')">
+                <img src="https://archive.org/download/3442-free-fire-battle-royale-guide/3442_Free-Fire_Battle-Royale-Guide.jpg" alt="Battle Royale">
+                <h4>Battle Royale</h4>
+            </div>
+            <div class="map-card" onclick="filterByCategory('headshot')">
+                <img src="https://archive.org/download/screenshot-20260629-171015-facebook/Screenshot_20260629-171015_Facebook.png" alt="Headshot 1v1 & 2v2">
+                <h4>Headshot 1v1 & 2v2</h4>
+            </div>
+            <div class="map-card" onclick="filterByCategory('classic squad')">
+                <img src="https://archive.org/download/photo_20260629/photo.jpg" alt="Classic Squad">
+                <h4>Classic Squad</h4>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Tournaments</h2>
+            <button class="mini-btn" onclick="resetFilter()" style="background:#30363d;">Show All</button>
+        </div>
         <div id="matchesList">Loading matches...</div>
     </div>
 
     <!-- Support Modal -->
     <div id="supportModal" class="modal">
-    <div class="modal-content">
-        <h3 style="color:var(--gold);">Support & Help</h3>
-        <p style="font-size:14px; line-height:1.5; text-align:left;">
-            🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br><br>
-            🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br><br>
-            💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
-            <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a><br><br>
-            
-            🔗 <b>referal or invite Link:</b><br>
-            <!-- Yeh link ya text copy aur share hoga -->
-            <input type="text" id="shareAppUrl" value="https://esports-rdx.blogspot.com/?m=0" readonly style="font-size:12px; padding:6px; margin:4px 0;"><br>
-            <button class="btn btn-green" style="padding:6px; font-size:13px; margin-top:2px;" onclick="copyAppUrl()">📋 Copy Link</button>
-            <button class="btn" style="padding:6px; font-size:13px; margin-top:2px; background:#25D366; color:#fff;" onclick="shareOnWhatsApp()">💬 Share on WhatsApp</button>
-        </p>
-        <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Support & Help</h3>
+            <p style="font-size:13px; line-height:1.4; text-align:left;">
+                🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
+                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
+                
+                🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
+                🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
+                
+                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
+                <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a><br><br>
+                
+                🔗 <b>Referral or Invite Link:</b><br>
+                <input type="text" id="shareAppUrl" value="https://esports-rdx.blogspot.com/?m=0" readonly style="font-size:12px; padding:6px; margin:4px 0;"><br>
+                <button class="btn btn-green" style="padding:6px; font-size:13px; margin-top:2px;" onclick="copyAppUrl()">📋 Copy Link</button>
+                <button class="btn" style="padding:6px; font-size:13px; margin-top:2px; background:#25D366; color:#fff;" onclick="shareOnWhatsApp()">💬 Share on WhatsApp</button>
+            </p>
+            <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
+        </div>
     </div>
-</div>
 
     <!-- Add Money QR Scanner Modal with 2 Min Timer -->
     <div id="addMoneyModal" class="modal">
@@ -298,7 +347,7 @@
             }
         });
 
-        // Load Active Matches & Auto-Filter Completed Matches
+        // Load Active Matches & Show Room ID Directly on Home Screen if Joined
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -327,11 +376,13 @@
                         let percent = (filledCount / maxSlots) * 100;
                         if(percent > 100) percent = 100;
 
+                        let feeDisplay = m.entryFee === 0 ? '<span style="color:var(--green); font-weight:bold;">FREE Match</span>' : `Entry Fee: ₹${m.entryFee}`;
+
                         html += `
                             <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
                                 <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
                                 <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
-                                <p>Entry Fee: ₹${m.entryFee} | Prize: ₹${m.prize}</p>
+                                <p>${feeDisplay} | Prize: ₹${m.prize}</p>
                                 <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
                                 <div class="progress-container">
                                     <div class="progress-bar" style="width: ${percent}%;"></div>
@@ -339,7 +390,7 @@
                                 <p>Time: <span class="timer">${m.time}</span></p>
                                 
                                 <div id="match-action-${docId}">
-                                    <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots})">Join Match</button>
+                                    <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button>
                                 </div>
                                 <div id="match-details-${docId}" style="margin-top:8px;"></div>
                             </div>
@@ -380,7 +431,7 @@
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
                                         <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
-                                        <p style="margin:2px 0; color:var(--green);"><b>Room & Pass:</b> ${mData.roomDetails || 'Will be updated soon'}</p>
+                                        <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin'}</p>
                                     </div>
                                 `;
                             }
@@ -390,7 +441,7 @@
             });
         }
 
-        function joinMatch(matchId, entryFee, maxSlots) {
+        function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
             let user = auth.currentUser;
             if(!user) { alert("Pehle login karein!"); return; }
 
@@ -413,17 +464,19 @@
                         let wallet = userDoc.data().wallet || 0;
                         if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
 
-                        db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee });
-                        db.collection("joins").add({
-                            matchId: matchId,
-                            userId: user.uid,
-                            userName: user.displayName,
-                            userEmail: user.email,
-                            ffId: ffId,
-                            timestamp: Date.now()
-                        }).then(() => {
-                            alert("Successfully Joined Match!");
-                            loadMatches();
+                        let newWallet = wallet - entryFee;
+                        db.collection("users").doc(user.uid).update({ wallet: newWallet }).then(() => {
+                            db.collection("joins").add({
+                                matchId: matchId,
+                                userId: user.uid,
+                                userName: user.displayName,
+                                userEmail: user.email,
+                                ffId: ffId,
+                                timestamp: Date.now()
+                            }).then(() => {
+                                alert(`Successfully Joined ${matchTitle}! Notification sent.`);
+                                loadMatches();
+                            });
                         });
                     });
                 });
@@ -473,6 +526,7 @@
 
             db.collection("withdrawals_or_deposits").add({
                 userId: auth.currentUser.uid,
+                userName: auth.currentUser.displayName,
                 email: auth.currentUser.email,
                 type: "DEPOSIT",
                 amount: Number(amt),
@@ -480,7 +534,7 @@
                 status: "Pending",
                 timestamp: Date.now()
             }).then(() => {
-                alert("Deposit request bhej di gayi hai! 2-3 ghante me coins add ho jayenge.");
+                alert("Deposit request bhej di gayi hai! Admin approval ke baad coins add ho jayenge.");
                 closeAddMoneyModal();
             });
         }
@@ -495,27 +549,24 @@
                 let wallet = doc.data().wallet || 0;
                 if(wallet < Number(amt)) { alert("Insufficient balance!"); return; }
 
-                db.collection("users").doc(auth.currentUser.uid).update({ wallet: wallet - Number(amt) });
-                db.collection("withdrawals").add({
-                    userId: auth.currentUser.uid,
-                    email: auth.currentUser.email,
-                    upi: upi,
-                    amount: Number(amt),
-                    status: "Pending",
-                    timestamp: Date.now()
-                }).then(() => {
-                    alert("Withdrawal request submitted successfully!");
-                    if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
-                        loadWithdrawalHistory();
-                    }
+                let newWallet = wallet - Number(amt);
+                db.collection("users").doc(auth.currentUser.uid).update({ wallet: newWallet }).then(() => {
+                    db.collection("withdrawals").add({
+                        userId: auth.currentUser.uid,
+                        userName: auth.currentUser.displayName,
+                        email: auth.currentUser.email,
+                        upi: upi,
+                        amount: Number(amt),
+                        status: "Pending",
+                        timestamp: Date.now()
+                    }).then(() => {
+                        alert("Withdrawal request submitted successfully!");
+                        if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
+                            loadWithdrawalHistory();
+                        }
+                    });
                 });
             });
-        }
-
-        function toggleHistory() {
-            let box = document.getElementById('historyBox');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadHistory();
         }
 
         function toggleWithdrawalHistory() {
@@ -524,41 +575,6 @@
             loadWithdrawalHistory();
         }
 
-        function loadHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-
-            db.collection("joins").where("userId", "==", user.uid).get().then(snapshot => {
-                let matchIds = [];
-                let joinDocs = {};
-                snapshot.forEach(doc => {
-                    let d = doc.data();
-                    matchIds.push(d.matchId);
-                    joinDocs[d.matchId] = d;
-                });
-
-                if(matchIds.length === 0) {
-                    document.getElementById('historyList').innerHTML = "No history found.";
-                    return;
-                }
-
-                db.collection("matches").get().then(mSnap => {
-                    let html = "";
-                    mSnap.forEach(mDoc => {
-                        let mData = mDoc.data();
-                        let docId = mDoc.id;
-                        
-                        if(joinDocs[docId] && mData.status !== "completed") {
-                            let d = joinDocs[docId];
-                            html += `<p><b>${mData.title}</b> | FF ID: ${d.ffId} | Status: <b style="color:var(--green);">Joined</b></p><hr style="border-color:#30363d">`;
-                        }
-                    });
-                    document.getElementById('historyList').innerHTML = html || "No active joined matches in history.";
-                });
-            });
-        }
-
-        // Withdrawal History with 24 hours auto-delete logic & timer
         function loadWithdrawalHistory() {
             let user = auth.currentUser;
             if(!user) return;
@@ -566,20 +582,18 @@
             db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
                 let html = "";
                 let currentTime = Date.now();
-                let twentyFourHours = 24 * 60 * 60 * 1000; // 24 Hours in milliseconds
+                let twentyFourHours = 24 * 60 * 60 * 1000;
 
                 snapshot.forEach(doc => {
                     let w = doc.data();
                     let wId = doc.id;
                     let timeElapsed = currentTime - (w.timestamp || currentTime);
 
-                    // Agar 24 ghante se jyada ho gaye hain toh database se automatically delete kar do
                     if (timeElapsed >= twentyFourHours) {
                         db.collection("withdrawals").doc(wId).delete();
                         return;
                     }
 
-                    // Bacha hua time calculate karein (24 hours - time elapsed)
                     let timeLeft = twentyFourHours - timeElapsed;
                     let hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
                     let minsLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
@@ -610,6 +624,38 @@
                     item.style.display = "none";
                 }
             });
+        }
+
+        function filterByCategory(category) {
+            let query = category.toLowerCase();
+            let items = document.querySelectorAll('.match-item');
+            items.forEach(item => {
+                let title = item.getAttribute('data-title');
+                if(title.includes(query)) {
+                    item.style.display = "block";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+
+        function resetFilter() {
+            document.getElementById('searchMatch').value = '';
+            let items = document.querySelectorAll('.match-item');
+            items.forEach(item => item.style.display = "block");
+        }
+
+        function copyAppUrl() {
+            let copyText = document.getElementById("shareAppUrl");
+            copyText.select();
+            document.execCommand("copy");
+            alert("Link Copied Successfully!");
+        }
+
+        function shareOnWhatsApp() {
+            let url = document.getElementById("shareAppUrl").value;
+            let message = "Join eSports RDX app for Free Fire tournaments and win real money! Download here: " + url;
+            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(message), "_blank");
         }
     </script>
 </body>
