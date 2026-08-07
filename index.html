@@ -230,7 +230,7 @@
         <!-- Search Bar -->
         <input type="text" id="searchMatch" placeholder="Search by Match Title or ID..." onkeyup="filterMatches()">
 
-        <!-- 4 Map Categories Below Search Bar (Clicking shows that category matches) -->
+        <!-- 4 Map Categories Below Search Bar -->
         <div class="maps-grid">
             <div class="map-card" onclick="filterByCategory('lone wolf')">
                 <img src="https://archive.org/download/sddefault_20260629/sddefault.jpg" alt="Lone Wolf">
@@ -291,12 +291,12 @@
         </div>
     </div>
 
-    <!-- Add Money QR Scanner Modal with 2 Min Timer -->
+    <!-- Add Money QR Scanner Modal with 2 Min Timer (Scanner Zoomed & Your UPI Added) -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money via QR</h3>
             <p>UPI ID: <b style="color:var(--green);">9522856794@fam</b></p>
-            <img src="https://archive.org/download/img-20260731-wa-0001/__ia_thumb.jpg" style="width:180px; height:180px; border-radius:8px; border:2px solid var(--gold); margin:10px 0;" alt="Scanner">
+            <img src="https://archive.org/download/img-20260731-wa-0001/__ia_thumb.jpg" style="width:220px; height:220px; border-radius:8px; border:2px solid var(--gold); margin:10px 0; object-fit:contain;" alt="Scanner">
             <p style="font-size:14px;">Time Left to Pay: <span id="paymentTimer" class="timer">02:00</span></p>
             <button class="btn btn-green" onclick="submitDepositProof()">I Have Paid (Submit UTR)</button>
             <button class="btn btn-red" onclick="closeAddMoneyModal()">Cancel</button>
@@ -326,9 +326,8 @@
         let timerInterval;
         let monthlyVideoUrlGlobal = "";
         let notifiedRooms = {}; 
-        let currentFilterMode = 'joined'; // Default mode: only show joined matches on home screen
+        let currentFilterMode = 'joined';
 
-        // Map photos ka automatic reference dictionary (Wahi photos jo category cards me hain)
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
             'battle royal': 'https://archive.org/download/3442-free-fire-battle-royale-guide/3442_Free-Fire_Battle-Royale-Guide.jpg',
@@ -396,7 +395,6 @@
             document.getElementById('monthlyEventModal').style.display = 'none';
         }
 
-        // Load Matches function with automatic match theme mapping based on title
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -429,10 +427,9 @@
 
                         let titleLower = m.title.toLowerCase();
 
-                        // Filtering logic (joined vs category filter)
                         if (currentFilterMode === 'joined') {
                             if (!user || !userJoinedMatches[docId]) {
-                                return; // Sirf wahi dikhao jo user ne join kiye hain
+                                return;
                             }
                         } else {
                             if (!titleLower.includes(currentFilterMode)) {
@@ -447,9 +444,7 @@
 
                         let feeDisplay = m.entryFee === 0 ? '<span style="color:var(--green); font-weight:bold;">FREE Match</span>' : `Entry Fee: ₹${m.entryFee}`;
 
-                        // AUTOMATIC THEME BANNER LOGIC:
-                        // Agar match ke naam me map ka naam match karega, toh wahi map photo automatic banner ban jayegi.
-                        let autoPhoto = 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'; // default
+                        let autoPhoto = 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg';
                         if (titleLower.includes('lone wolf')) {
                             autoPhoto = mapPhotos['lone wolf'];
                         } else if (titleLower.includes('battle royal') || titleLower.includes('battle royale')) {
@@ -460,7 +455,6 @@
                             autoPhoto = mapPhotos['classic squad'];
                         }
 
-                        // Agar admin ne alag se photo di hai toh wo, warna automatic match theme photo
                         let matchPhoto = m.photoUrl || m.bannerUrl || autoPhoto;
 
                         html += `
@@ -710,7 +704,6 @@
             });
         }
 
-        // Search Bar Handler
         function filterMatches() {
             let query = document.getElementById('searchMatch').value.toLowerCase();
             let items = document.querySelectorAll('.match-item');
@@ -725,14 +718,12 @@
             });
         }
 
-        // Map Category Click Filter Handler
         function filterByCategory(category) {
             currentFilterMode = category.toLowerCase();
             document.getElementById('sectionTitle').innerText = category.toUpperCase() + " Matches";
             loadMatches();
         }
 
-        // Reset to Joined Matches Only view
         function showJoinedMatchesOnly() {
             currentFilterMode = 'joined';
             document.getElementById('sectionTitle').innerText = "Joined Matches";
