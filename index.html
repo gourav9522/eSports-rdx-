@@ -274,7 +274,7 @@
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
                 🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>room id password:</b> Room ID and password will be shared 5 minutes before the match starts..<br><br>
+                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
                 
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
                 🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
@@ -325,7 +325,7 @@
         const db = firebase.firestore();
         let timerInterval;
         let monthlyVideoUrlGlobal = "";
-        let notifiedRooms = {}; // Track notifications to prevent repeating
+        let notifiedRooms = {}; 
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -361,7 +361,6 @@
             });
         }
 
-        // Load Settings (Banner & Monthly Video)
         db.collection("settings").doc("config").onSnapshot(doc => {
             if(doc.exists) {
                 let data = doc.data();
@@ -388,7 +387,7 @@
             document.getElementById('monthlyEventModal').style.display = 'none';
         }
 
-        // Load Active Matches & Real-time Room ID Notification Alert
+        // Load Active Matches (Only Joined Matches shown if user is logged in and joined)
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -400,9 +399,16 @@
 
                 db.collection("joins").get().then(joinsSnap => {
                     let joinCounts = {};
+                    let userJoinedMatches = {};
+
                     joinsSnap.forEach(jDoc => {
-                        let mId = jDoc.data().matchId;
+                        let jData = jDoc.data();
+                        let mId = jData.matchId;
                         joinCounts[mId] = (joinCounts[mId] || 0) + 1;
+                        
+                        if(user && jData.userId === user.uid) {
+                            userJoinedMatches[mId] = true;
+                        }
                     });
 
                     let html = "";
@@ -412,6 +418,11 @@
                         
                         if(m.status === "completed") return;
 
+                        // Agar user logged in hai, toh sirf wahi matches dikhe jo user ne join kiye hain
+                        if(user && !userJoinedMatches[docId]) {
+                            return; 
+                        }
+
                         let maxSlots = m.maxSlots || 60;
                         let filledCount = joinCounts[docId] || 0;
                         let percent = (filledCount / maxSlots) * 100;
@@ -419,9 +430,12 @@
 
                         let feeDisplay = m.entryFee === 0 ? '<span style="color:var(--green); font-weight:bold;">FREE Match</span>' : `Entry Fee: ₹${m.entryFee}`;
 
+                        // Admin panel se jo map/match ka photo URL aayega wahi yaha dynamically set hoga
+                        let matchPhoto = m.photoUrl || m.bannerUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg';
+
                         html += `
                             <div class="card match-item" data-title="${m.title.toLowerCase()}" data-id="${m.matchId.toLowerCase()}">
-                                <img src="${m.photoUrl || 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg'}" class="banner-img" style="height:100px;">
+                                <img src="${matchPhoto}" class="banner-img" style="height:100px;">
                                 <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
                                 <p>${feeDisplay} | Prize: ₹${m.prize}</p>
                                 <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
@@ -437,7 +451,8 @@
                             </div>
                         `;
                     });
-                    document.getElementById('matchesList').innerHTML = html || "<p>No active matches available right now.</p>";
+                    
+                    document.getElementById('matchesList').innerHTML = html || (user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Tournaments join karein taaki wo yahan dikhein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>");
                     
                     if(user) {
                         checkUserJoins(user.uid);
@@ -471,7 +486,6 @@
                                 
                                 let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
                                 
-                                // Automatic Mobile Notification Alert when Room ID is updated by admin
                                 if (mData.roomDetails && mData.roomDetails !== 'Pending') {
                                     let notifKey = docId + "_" + mData.roomDetails;
                                     if (!notifiedRooms[notifKey]) {
