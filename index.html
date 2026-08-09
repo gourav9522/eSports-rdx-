@@ -303,8 +303,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        const BACKEND_URL = "https://auto-payment-bot-mm7e.onrender.com";
-
         const firebaseConfig = {
             apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
             authDomain: "ad-g-55646.firebaseapp.com",
@@ -472,7 +470,8 @@
                         let actionButtonHtml = "";
 
                         if (isCompleted) {
-                            actionButtonHtml = `<button class="btn btn-gray" disabled>Match Completed (Winner: ${m.winnerName || 'None'})</button>`;
+                            let statusText = m.winnerStatusText || "Completed";
+                            actionButtonHtml = `<button class="btn btn-gray" disabled>Match ${statusText} (Winner: ${m.winnerName || 'None'})</button>`;
                         } else {
                             actionButtonHtml = `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
                         }
@@ -537,7 +536,6 @@
                                 }
                             }
 
-                            // Check Winning History storage
                             if(mData.status === "completed" && mData.winnerName === auth.currentUser.displayName) {
                                 saveWinningRecord(mData.title, mData.prize);
                             }
