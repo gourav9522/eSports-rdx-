@@ -211,9 +211,15 @@
                 <button class="btn btn-red" onclick="openWithdraw()">Withdraw</button>
             </div>
             <div class="flex" style="margin-top:5px;">
-                <button class="btn btn-gold" style="width:100%; margin-top:8px;" onclick="toggleWithdrawalHistory()">Withdrawal History</button>
+                <button class="btn btn-gold" style="width:48%;" onclick="toggleWinningHistory()">Winning History</button>
+                <button class="btn btn-gold" style="width:48%;" onclick="toggleWithdrawalHistory()">Withdrawal History</button>
             </div>
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
+        </div>
+
+        <div id="winningHistoryBox" class="card" style="display:none;">
+            <h3>My Winning History</h3>
+            <div id="winningHistoryList">Loading winning history...</div>
         </div>
 
         <div id="withdrawalHistoryBox" class="card" style="display:none;">
@@ -317,7 +323,7 @@
         let monthlyVideoUrlGlobal = "";
         let notifiedRooms = {}; 
         let currentFilterMode = 'joined';
-        let lastActionTime = 0; // Anti-Spam protection
+        let lastActionTime = 0; 
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -334,6 +340,7 @@
         function logout() { 
             if(auth.currentUser) {
                 localStorage.removeItem('user_wallet_' + auth.currentUser.uid);
+                localStorage.removeItem('user_wins_' + auth.currentUser.uid);
             }
             auth.signOut(); 
         }
@@ -354,7 +361,6 @@
             }
         });
 
-        // Instant Cache + Real-time Sync setup
         function setupUserAccount(user) {
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
             if (cachedWallet !== null) {
@@ -430,8 +436,6 @@
                         let m = doc.data();
                         let docId = doc.id;
                         
-                        if(m.status === "completed") return;
-
                         let titleLower = m.title.toLowerCase();
 
                         if (currentFilterMode === 'joined') {
@@ -464,6 +468,15 @@
 
                         let matchPhoto = m.photoUrl || m.bannerUrl || autoPhoto;
 
+                        let isCompleted = m.status === "completed";
+                        let actionButtonHtml = "";
+
+                        if (isCompleted) {
+                            actionButtonHtml = `<button class="btn btn-gray" disabled>Match Completed (Winner: ${m.winnerName || 'None'})</button>`;
+                        } else {
+                            actionButtonHtml = `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
+                        }
+
                         html += `
                             <div class="card match-item" data-title="${titleLower}" data-id="${m.matchId.toLowerCase()}">
                                 <img src="${matchPhoto}" class="banner-img" style="height:120px;">
@@ -475,9 +488,7 @@
                                 </div>
                                 <p>Time: <span class="timer">${m.time}</span></p>
                                 
-                                <div id="match-action-${docId}">
-                                    <button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button>
-                                </div>
+                                ${actionButtonHtml}
                                 <div id="match-details-${docId}" style="margin-top:8px;"></div>
                             </div>
                         `;
@@ -505,32 +516,40 @@
                     mSnap.forEach(mDoc => {
                         let docId = mDoc.id;
                         let mData = mDoc.data();
-                        
-                        if(mData.status === "completed") return;
 
                         let actionDiv = document.getElementById(`match-action-${docId}`);
                         let detailsDiv = document.getElementById(`match-details-${docId}`);
 
-                        if(actionDiv && detailsDiv) {
-                            if(joinedMatches[docId]) {
-                                let jData = joinedMatches[docId];
+                        if(joinedMatches[docId]) {
+                            let jData = joinedMatches[docId];
+                            
+                            if (actionDiv && mData.status !== "completed") {
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
-                                
-                                let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
-                                
-                                if (mData.roomDetails && mData.roomDetails !== 'Pending') {
-                                    let notifKey = docId + "_" + mData.roomDetails;
-                                    if (!notifiedRooms[notifKey]) {
-                                        notifiedRooms[notifKey] = true;
-                                        alert(`🚨 Room ID & Password Updated for Match: ${mData.title}!\nRoom Details: ${mData.roomDetails}`);
-                                    }
+                            }
+                            
+                            let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
+                            
+                            if (mData.roomDetails && mData.roomDetails !== 'Pending') {
+                                let notifKey = docId + "_" + mData.roomDetails;
+                                if (!notifiedRooms[notifKey]) {
+                                    notifiedRooms[notifKey] = true;
+                                    alert(`🚨 Room ID & Password Updated for Match: ${mData.title}!\nRoom Details: ${mData.roomDetails}`);
                                 }
+                            }
 
+                            // Check Winning History storage
+                            if(mData.status === "completed" && mData.winnerName === auth.currentUser.displayName) {
+                                saveWinningRecord(mData.title, mData.prize);
+                            }
+
+                            if(detailsDiv) {
+                                let winnerStatus = mData.status === "completed" ? `<p style="margin:2px 0; color:var(--green);"><b>Winner:</b> ${mData.winnerName || 'Not Announced'}</p>` : "";
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
                                         <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
+                                        ${winnerStatus}
                                     </div>
                                 `;
                             }
@@ -540,7 +559,45 @@
             });
         }
 
-        // Protected Match Joining with Anti-Spam Check
+        function saveWinningRecord(matchTitle, prizeAmount) {
+            let user = auth.currentUser;
+            if(!user) return;
+            let key = 'user_wins_' + user.uid;
+            let wins = JSON.parse(localStorage.getItem(key)) || [];
+            
+            let alreadyExists = wins.some(w => w.title === matchTitle);
+            if(!alreadyExists) {
+                wins.push({ title: matchTitle, prize: prizeAmount, date: new Date().toLocaleDateString() });
+                localStorage.setItem(key, JSON.stringify(wins));
+            }
+        }
+
+        function toggleWinningHistory() {
+            let box = document.getElementById('winningHistoryBox');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+            loadWinningHistory();
+        }
+
+        function loadWinningHistory() {
+            let user = auth.currentUser;
+            if(!user) return;
+            let key = 'user_wins_' + user.uid;
+            let wins = JSON.parse(localStorage.getItem(key)) || [];
+            
+            let html = "";
+            wins.forEach(w => {
+                html += `
+                    <div style="font-size:13px; margin-bottom:8px;">
+                        <p style="margin:2px 0; color:var(--gold);"><b>Match:</b> ${w.title}</p>
+                        <p style="margin:2px 0; color:var(--green);"><b>Won Prize:</b> ₹${w.prize}</p>
+                        <p style="margin:2px 0; font-size:11px; color:var(--text-gray);">Date: ${w.date}</p>
+                    </div>
+                    <hr style="border-color:#30363d">
+                `;
+            });
+            document.getElementById('winningHistoryList').innerHTML = html || "No winning history found in local storage.";
+        }
+
         function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
             let user = auth.currentUser;
             if(!user) { alert("Pehle login karein!"); return; }
@@ -593,21 +650,10 @@
             });
         }
 
-        function openSupportModal() {
-            document.getElementById('supportModal').style.display = 'flex';
-        }
-        function closeSupportModal() {
-            document.getElementById('supportModal').style.display = 'none';
-        }
-
-        function openAddMoneyModal() {
-            document.getElementById('addMoneyModal').style.display = 'flex';
-            startPaymentTimer(120);
-        }
-        function closeAddMoneyModal() {
-            document.getElementById('addMoneyModal').style.display = 'none';
-            clearInterval(timerInterval);
-        }
+        function openSupportModal() { document.getElementById('supportModal').style.display = 'flex'; }
+        function closeSupportModal() { document.getElementById('supportModal').style.display = 'none'; }
+        function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; startPaymentTimer(120); }
+        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; clearInterval(timerInterval); }
 
         function startPaymentTimer(duration) {
             let timer = duration, minutes, seconds;
@@ -615,12 +661,9 @@
             timerInterval = setInterval(function () {
                 minutes = parseInt(timer / 60, 10);
                 seconds = parseInt(timer % 60, 10);
-
                 minutes = minutes < 10 ? "0" + minutes : minutes;
                 seconds = seconds < 10 ? "0" + seconds : seconds;
-
                 document.getElementById('paymentTimer').textContent = minutes + ":" + seconds;
-
                 if (--timer < 0) {
                     clearInterval(timerInterval);
                     document.getElementById('paymentTimer').textContent = "Time Expired!";
@@ -628,7 +671,6 @@
             }, 1000);
         }
 
-        // Deposit Fraud Prevention Check
         function submitDepositProof() {
             let amt = prompt("Kitna amount pay kiya hai? (Enter amount):");
             if(!amt || isNaN(amt) || Number(amt) <= 0) { alert("Please enter a valid amount!"); return; }
