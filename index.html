@@ -317,6 +317,7 @@
         let monthlyVideoUrlGlobal = "";
         let notifiedRooms = {}; 
         let currentFilterMode = 'joined';
+        let lastActionTime = 0; // Anti-Spam protection
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -330,7 +331,12 @@
             auth.signInWithRedirect(provider).catch(e => alert(e.message));
         }
 
-        function logout() { auth.signOut(); }
+        function logout() { 
+            if(auth.currentUser) {
+                localStorage.removeItem('user_wallet_' + auth.currentUser.uid);
+            }
+            auth.signOut(); 
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -348,13 +354,24 @@
             }
         });
 
+        // Instant Cache + Real-time Sync setup
         function setupUserAccount(user) {
+            let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
+            if (cachedWallet !== null) {
+                document.getElementById('topUserWallet').innerText = cachedWallet;
+            } else {
+                document.getElementById('topUserWallet').innerText = "...";
+            }
+
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
                     document.getElementById('topUserWallet').innerText = "0";
+                    localStorage.setItem('user_wallet_' + user.uid, "0");
                 } else {
-                    document.getElementById('topUserWallet').innerText = doc.data().wallet || 0;
+                    let walletVal = doc.data().wallet || 0;
+                    document.getElementById('topUserWallet').innerText = walletVal;
+                    localStorage.setItem('user_wallet_' + user.uid, walletVal);
                 }
             });
         }
@@ -523,9 +540,17 @@
             });
         }
 
+        // Protected Match Joining with Anti-Spam Check
         function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
             let user = auth.currentUser;
             if(!user) { alert("Pehle login karein!"); return; }
+
+            let currentTime = Date.now();
+            if (currentTime - lastActionTime < 3000) {
+                alert("Please wait a moment before trying again.");
+                return;
+            }
+            lastActionTime = currentTime;
 
             db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
                 if(!existingJoin.empty) {
@@ -540,7 +565,10 @@
                     }
 
                     let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
-                    if(!ffId) return;
+                    if(!ffId || ffId.trim().length < 5) {
+                        alert("Please enter a valid Free Fire ID!");
+                        return;
+                    }
 
                     db.collection("users").doc(user.uid).get().then(userDoc => {
                         let wallet = userDoc.data().wallet || 0;
@@ -553,7 +581,7 @@
                                 userId: user.uid,
                                 userName: user.displayName,
                                 userEmail: user.email,
-                                ffId: ffId,
+                                ffId: ffId.trim(),
                                 timestamp: Date.now()
                             }).then(() => {
                                 alert(`Successfully Joined ${matchTitle}!`);
@@ -600,11 +628,12 @@
             }, 1000);
         }
 
+        // Deposit Fraud Prevention Check
         function submitDepositProof() {
             let amt = prompt("Kitna amount pay kiya hai? (Enter amount):");
-            if(!amt) return;
+            if(!amt || isNaN(amt) || Number(amt) <= 0) { alert("Please enter a valid amount!"); return; }
             let utr = prompt("Payment ka UTR / Transaction ID enter karein:");
-            if(!utr) return;
+            if(!utr || utr.trim().length < 6) { alert("Please enter a valid UTR / Transaction ID!"); return; }
 
             db.collection("withdrawals_or_deposits").add({
                 userId: auth.currentUser.uid,
@@ -612,7 +641,7 @@
                 email: auth.currentUser.email,
                 type: "DEPOSIT",
                 amount: Number(amt),
-                utr: utr,
+                utr: utr.trim(),
                 status: "Pending",
                 timestamp: Date.now()
             }).then(() => {
@@ -623,9 +652,9 @@
 
         function openWithdraw() {
             let upi = prompt("Apni Withdrawal UPI ID enter karein:");
-            if(!upi) return;
+            if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
             let amt = prompt("Amount enter karein (Minimum ₹30):");
-            if(!amt || Number(amt) < 30) { alert("Minimum withdrawal ₹30 hai!"); return; }
+            if(!amt || isNaN(amt) || Number(amt) < 30) { alert("Minimum withdrawal ₹30 hai!"); return; }
 
             db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
                 let wallet = doc.data().wallet || 0;
@@ -637,7 +666,7 @@
                         userId: auth.currentUser.uid,
                         userName: auth.currentUser.displayName,
                         email: auth.currentUser.email,
-                        upi: upi,
+                        upi: upi.trim(),
                         amount: Number(amt),
                         status: "Pending",
                         timestamp: Date.now()
