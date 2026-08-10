@@ -287,13 +287,13 @@
         </div>
     </div>
 
+    <!-- Updated Add Money Modal with Automatic UPI Intent & Unique Amount -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
-            <h3 style="color:var(--gold);">Add Money via QR</h3>
-            <p>UPI ID: <b style="color:var(--green);">9522856794@fam</b></p>
-            <img src="https://archive.org/download/img-20260731-wa-0001/__ia_thumb.jpg" style="width:220px; height:220px; border-radius:8px; border:2px solid var(--gold); margin:10px 0; object-fit:contain;" alt="Scanner">
-            <p style="font-size:14px;">Time Left to Pay: <span id="paymentTimer" class="timer">02:00</span></p>
-            <button class="btn btn-green" onclick="submitDepositProof()">I Have Paid (Submit UTR)</button>
+            <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
+            <p style="font-size:13px; color:var(--text-gray);">Enter amount to add coins automatically via UPI apps:</p>
+            <input type="number" id="depositAmountInput" placeholder="Enter Amount (e.g. 50)">
+            <button class="btn btn-green" onclick="initiateAutoPayment()">Pay via UPI App</button>
             <button class="btn btn-red" onclick="closeAddMoneyModal()">Cancel</button>
         </div>
     </div>
@@ -650,44 +650,57 @@
 
         function openSupportModal() { document.getElementById('supportModal').style.display = 'flex'; }
         function closeSupportModal() { document.getElementById('supportModal').style.display = 'none'; }
-        function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; startPaymentTimer(120); }
-        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; clearInterval(timerInterval); }
+        function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
+        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; }
 
-        function startPaymentTimer(duration) {
-            let timer = duration, minutes, seconds;
-            clearInterval(timerInterval);
-            timerInterval = setInterval(function () {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-                document.getElementById('paymentTimer').textContent = minutes + ":" + seconds;
-                if (--timer < 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('paymentTimer').textContent = "Time Expired!";
-                }
-            }, 1000);
-        }
+        // Automatic UPI Intent & Unique Decimal Amount Logic
+        async function initiateAutoPayment() {
+            let amountInput = document.getElementById('depositAmountInput').value;
+            let baseAmount = Number(amountInput);
 
-        function submitDepositProof() {
-            let amt = prompt("Kitna amount pay kiya hai? (Enter amount):");
-            if(!amt || isNaN(amt) || Number(amt) <= 0) { alert("Please enter a valid amount!"); return; }
-            let utr = prompt("Payment ka UTR / Transaction ID enter karein:");
-            if(!utr || utr.trim().length < 6) { alert("Please enter a valid UTR / Transaction ID!"); return; }
+            if (!baseAmount || baseAmount <= 0) {
+                alert("Please enter a valid amount!");
+                return;
+            }
 
-            db.collection("withdrawals_or_deposits").add({
-                userId: auth.currentUser.uid,
-                userName: auth.currentUser.displayName,
-                email: auth.currentUser.email,
-                type: "DEPOSIT",
-                amount: Number(amt),
-                utr: utr.trim(),
-                status: "Pending",
-                timestamp: Date.now()
-            }).then(() => {
-                alert("Payment successful! Coins will be added within 1 minute.");
+            let user = auth.currentUser;
+            if (!user) {
+                alert("Please login first!");
+                return;
+            }
+
+            // Unique Decimal Amount generate karna (e.g. 50 + 0.15 = 50.15)
+            let randomPaise = (Math.floor(Math.random() * 90) + 10) / 100;
+            let finalAmount = baseAmount + randomPaise;
+
+            let txnId = "TXN_" + Date.now();
+            let upiId = "9522856794@fam";
+            let payeeName = "Esports RDX";
+            let expiryTime = Date.now() + (5 * 60 * 1000); // 5 Minutes timer
+
+            try {
+                // Firebase Firestore mein Pending Request save karna
+                await db.collection('withdrawals_or_deposits').doc(txnId).set({
+                    userId: user.uid,
+                    amount: finalAmount,
+                    requestedAmount: baseAmount,
+                    txnId: txnId,
+                    status: "Pending",
+                    expiresAt: expiryTime,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // UPI Intent trigger karna (FamApp / PhonePe / GPay khul jayega)
+                let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalAmount.toFixed(2)}&cu=INR&tr=${txnId}`;
+                window.location.href = upiUrl;
+
+                alert(`Please pay exactly ₹${finalAmount.toFixed(2)} within 5 minutes. Coins will be added automatically!`);
                 closeAddMoneyModal();
-            });
+
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Failed to initiate payment request.");
+            }
         }
 
         function openWithdraw() {
