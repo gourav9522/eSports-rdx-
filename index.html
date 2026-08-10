@@ -287,7 +287,6 @@
         </div>
     </div>
 
-    <!-- Updated Add Money Modal with Automatic UPI Intent & Unique Amount -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
@@ -317,7 +316,6 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        let timerInterval;
         let monthlyVideoUrlGlobal = "";
         let notifiedRooms = {}; 
         let currentFilterMode = 'joined';
@@ -336,18 +334,24 @@
         }
 
         function logout() { 
-            if(auth.currentUser) {
-                localStorage.removeItem('user_wallet_' + auth.currentUser.uid);
-                localStorage.removeItem('user_wins_' + auth.currentUser.uid);
-            }
-            auth.signOut(); 
+            // Note: Local storage cache clear nahi hoga, sirf session handle hoga
+            auth.signOut();
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('userSection').style.display = 'none';
+            document.getElementById('topUserName').innerText = "Guest User";
+            document.getElementById('topUserWallet').innerText = "0";
         }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authSection').style.display = 'none';
                 document.getElementById('userSection').style.display = 'block';
-                document.getElementById('topUserName').innerText = user.displayName;
+                
+                // Pehle localStorage se naam dikhao taaki blank na lage
+                let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
+                document.getElementById('topUserName').innerText = cachedName;
+                localStorage.setItem('user_name_' + user.uid, cachedName);
+
                 setupUserAccount(user);
                 loadMatches();
             } else {
@@ -360,6 +364,7 @@
         });
 
         function setupUserAccount(user) {
+            // LocalStorage se turant purana balance load karo (Kabhi 0 nahi dikhega)
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
             if (cachedWallet !== null) {
                 document.getElementById('topUserWallet').innerText = cachedWallet;
@@ -367,6 +372,7 @@
                 document.getElementById('topUserWallet').innerText = "...";
             }
 
+            // Firebase se real-time background sync
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
@@ -375,7 +381,12 @@
                 } else {
                     let walletVal = doc.data().wallet || 0;
                     document.getElementById('topUserWallet').innerText = walletVal;
+                    // Data permanent save rahega local storage me, delete nahi hoga
                     localStorage.setItem('user_wallet_' + user.uid, walletVal);
+                    if(doc.data().name) {
+                        localStorage.setItem('user_name_' + user.uid, doc.data().name);
+                        document.getElementById('topUserName').innerText = doc.data().name;
+                    }
                 }
             });
         }
@@ -536,7 +547,8 @@
                                 }
                             }
 
-                            if(mData.status === "completed" && mData.winnerName === auth.currentUser.displayName) {
+                            let currentUserName = auth.currentUser ? auth.currentUser.displayName : "User";
+                            if(mData.status === "completed" && mData.winnerName === currentUserName) {
                                 saveWinningRecord(mData.title, mData.prize);
                             }
 
@@ -544,7 +556,7 @@
                                 let winnerStatus = mData.status === "completed" ? `<p style="margin:2px 0; color:var(--green);"><b>Winner:</b> ${mData.winnerName || 'Not Announced'}</p>` : "";
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
-                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser.displayName}</p>
+                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${currentUserName}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
                                         ${winnerStatus}
@@ -566,7 +578,7 @@
             let alreadyExists = wins.some(w => w.title === matchTitle);
             if(!alreadyExists) {
                 wins.push({ title: matchTitle, prize: prizeAmount, date: new Date().toLocaleDateString() });
-                localStorage.setItem(key, JSON.stringify(wins));
+                localStorage.setItem(key, JSON.stringify(wins)); // Securely stored without auto-delete
             }
         }
 
@@ -593,7 +605,33 @@
                     <hr style="border-color:#30363d">
                 `;
             });
-            document.getElementById('winningHistoryList').innerHTML = html || "No winning history found in local storage.";
+            document.getElementById('winningHistoryList').innerHTML = html || "No winning history found.";
+        }
+
+        function toggleWithdrawalHistory() {
+            let box = document.getElementById('withdrawalHistoryBox');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+            loadWithdrawalHistory();
+        }
+
+        function loadWithdrawalHistory() {
+            let user = auth.currentUser;
+            if(!user) return;
+
+            db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
+                let html = "";
+                snapshot.forEach(doc => {
+                    let w = doc.data();
+                    html += `
+                        <div style="font-size:13px; margin-bottom:8px;">
+                            <p style="margin:2px 0;"><b>Amount:</b> ₹${w.amount} | <b>UPI:</b> ${w.upi}</p>
+                            <p style="margin:2px 0;"><b>Status:</b> <span style="color:var(--gold);">${w.status}</span></p>
+                        </div>
+                        <hr style="border-color:#30363d">
+                    `;
+                });
+                document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
+            });
         }
 
         function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
@@ -653,7 +691,6 @@
         function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
         function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; }
 
-        // Automatic UPI Intent & Unique Decimal Amount Logic (Updated)
         async function initiateAutoPayment() {
             let amountInput = document.getElementById('depositAmountInput').value;
             let baseAmount = Number(amountInput);
@@ -669,17 +706,14 @@
                 return;
             }
 
-            // Unique Decimal Amount generate karna (e.g. 50 + 0.15 = 50.15)
             let randomPaise = (Math.floor(Math.random() * 90) + 10) / 100;
             let finalAmount = baseAmount + randomPaise;
-
             let txnId = "TXN_" + Date.now();
             let upiId = "9522856794@fam";
             let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (5 * 60 * 1000); // 5 Minutes timer
+            let expiryTime = Date.now() + (5 * 60 * 1000);
 
             try {
-                // Firebase Firestore mein Pending Request save karna
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
                     userId: user.uid,
                     amount: finalAmount,
@@ -691,7 +725,7 @@
                 });
 
                 let exactAmtStr = finalAmount.toFixed(2);
-                let confirmPay = confirm(`Add Money Request Created!\n\nPlease pay exactly: ₹${exactAmtStr}\nUPI ID: ${upiId}\n\nClick OK to open UPI app or copy UPI ID.`);
+                let confirmPay = confirm(`Add Money Request Created!\n\nPlease pay exactly: ₹${exactAmtStr}\nUPI ID: ${upiId}\n\nClick OK to open UPI app.`);
 
                 if (confirmPay) {
                     let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
@@ -699,7 +733,6 @@
                 }
 
                 closeAddMoneyModal();
-
             } catch (error) {
                 console.error("Error:", error);
                 alert("Failed to initiate payment request.");
@@ -733,49 +766,6 @@
                         }
                     });
                 });
-            });
-        }
-
-        function toggleWithdrawalHistory() {
-            let box = document.getElementById('withdrawalHistoryBox');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadWithdrawalHistory();
-        }
-
-        function loadWithdrawalHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-
-            db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
-                let html = "";
-                let currentTime = Date.now();
-                let twentyFourHours = 24 * 60 * 60 * 1000;
-
-                snapshot.forEach(doc => {
-                    let w = doc.data();
-                    let wId = doc.id;
-                    let timeElapsed = currentTime - (w.timestamp || currentTime);
-
-                    if (timeElapsed >= twentyFourHours) {
-                        db.collection("withdrawals").doc(wId).delete();
-                        return;
-                    }
-
-                    let timeLeft = twentyFourHours - timeElapsed;
-                    let hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
-                    let minsLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-
-                    html += `
-                        <div style="font-size:13px; margin-bottom:8px;">
-                            <p style="margin:2px 0;"><b>Amount:</b> ₹${w.amount} | <b>UPI:</b> ${w.upi}</p>
-                            <p style="margin:2px 0;"><b>Status:</b> <span style="color:var(--gold);">${w.status}</span></p>
-                            <p style="margin:2px 0; color:var(--red);"><b>Auto-Delete in:</b> ${hoursLeft}h ${minsLeft}m</p>
-                        </div>
-                        <hr style="border-color:#30363d">
-                    `;
-                });
-
-                document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
             });
         }
 
