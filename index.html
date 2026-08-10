@@ -653,7 +653,7 @@
         function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
         function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; }
 
-        // Automatic UPI Intent & Unique Decimal Amount Logic
+        // Automatic UPI Intent & Unique Decimal Amount Logic (Updated)
         async function initiateAutoPayment() {
             let amountInput = document.getElementById('depositAmountInput').value;
             let baseAmount = Number(amountInput);
@@ -690,11 +690,14 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // UPI Intent trigger karna (FamApp / PhonePe / GPay khul jayega)
-                let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${finalAmount.toFixed(2)}&cu=INR&tr=${txnId}`;
-                window.location.href = upiUrl;
+                let exactAmtStr = finalAmount.toFixed(2);
+                let confirmPay = confirm(`Add Money Request Created!\n\nPlease pay exactly: ₹${exactAmtStr}\nUPI ID: ${upiId}\n\nClick OK to open UPI app or copy UPI ID.`);
 
-                alert(`Please pay exactly ₹${finalAmount.toFixed(2)} within 5 minutes. Coins will be added automatically!`);
+                if (confirmPay) {
+                    let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
+                    window.location.href = upiUrl;
+                }
+
                 closeAddMoneyModal();
 
             } catch (error) {
