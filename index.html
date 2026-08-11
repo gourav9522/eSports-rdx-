@@ -92,14 +92,16 @@
         .btn-gold { background: var(--gold); color: #000; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         
-        /* Gold Coin Deposit Buttons Grid */
-        .deposit-grid {
+        /* Deposit & Withdrawal Buttons Grid */
+        .deposit-grid, .withdraw-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
             margin: 10px 0;
+            max-height: 250px;
+            overflow-y: auto;
         }
-        .deposit-btn {
+        .deposit-btn, .withdraw-btn {
             background: linear-gradient(135deg, #221d0b, #3d310d);
             border: 1px solid var(--gold);
             color: var(--gold);
@@ -111,10 +113,10 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            font-size: 14px;
+            font-size: 13px;
             transition: 0.2s;
         }
-        .deposit-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #3d310d, #574512); }
+        .deposit-btn:hover, .withdraw-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #3d310d, #574512); }
 
         input, select {
             width: 100%;
@@ -312,7 +314,7 @@
         </div>
     </div>
 
-    <!-- Add Money Modal with ₹10 to ₹1000 Gold Coin Buttons & Live QR Code with 4-Min Timer -->
+    <!-- Add Money Modal with updated buttons (10 to 1000) -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
@@ -321,13 +323,16 @@
             <div class="deposit-grid">
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(10)">🪙 ₹10</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(20)">🪙 ₹20</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(30)">🪙 ₹30</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(50)">🪙 ₹50</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(100)">🪙 ₹100</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(150)">🪙 ₹150</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(200)">🪙 ₹200</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(300)">🪙 ₹300</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(500)">🪙 ₹500</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(1000)">🪙 ₹1000</button>
             </div>
 
-            <!-- QR Display Section (Hidden initially, shown on click) -->
             <div id="qrDisplaySection" style="display:none; margin-top:10px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid var(--gold);">
                 <p style="font-size:12px; color:var(--red); font-weight:bold; margin:2px 0;">Time Left: <span id="timer">04:00</span></p>
                 <div style="background:#fff; padding:8px; display:inline-block; border-radius:4px; margin-top:5px;">
@@ -338,6 +343,31 @@
             </div>
 
             <button class="btn btn-red" onclick="closeAddMoneyModal()" style="margin-top:10px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Withdrawal Modal with Golden Buttons -->
+    <div id="withdrawalModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Withdrawal Request</h3>
+            <p style="font-size:13px; color:var(--text-gray);">Select amount to withdraw (Min ₹30):</p>
+            
+            <div class="withdraw-grid">
+                <button class="withdraw-btn" onclick="submitWithdrawal(30)">🪙 ₹30</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(40)">🪙 ₹40</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(50)">🪙 ₹50</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(55)">🪙 ₹55</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(100)">🪙 ₹100</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(150)">🪙 ₹150</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(200)">🪙 ₹200</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(300)">🪙 ₹300</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(360)">🪙 ₹360</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(480)">🪙 ₹480</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(500)">🪙 ₹500</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(1000)">🪙 ₹1000</button>
+            </div>
+
+            <button class="btn btn-red" onclick="closeWithdrawalModal()" style="margin-top:10px;">Close</button>
         </div>
     </div>
 
@@ -689,7 +719,6 @@
                 let userData = userDoc.data() || {};
                 let hasDeposited = userData.hasDeposited || false;
 
-                // Rule: Free match join karne ke liye pehle kam se kam ek baar deposit karna zaroori hai
                 if (entryFee === 0 && !hasDeposited) {
                     alert("Free match join karne ke liye pehle app mein kam se kam ek baar 'Add Money' se deposit karna anivarya hai!");
                     return;
@@ -745,7 +774,6 @@
             clearInterval(timerInterval);
         }
 
-        // Dynamic QR Generation with Unique Decimal & 4-Min Timer for ₹10 to ₹1000 buttons
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
@@ -753,17 +781,15 @@
                 return;
             }
 
-            // Har amount ke liye unique decimal set taki server turant pehchan sake
-            let decimals = { 10: 0.31, 20: 0.52, 50: 0.15, 100: 0.99, 300: 0.45, 1000: 0.88 };
+            let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 150: 0.22, 200: 0.38, 300: 0.45, 500: 0.67, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
             let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
             let upiId = "9522856794@fam";
             let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (4 * 60 * 1000); // 4 Minutes Expiry
+            let expiryTime = Date.now() + (4 * 60 * 1000);
 
             try {
-                // Server (Firebase) par request save karein
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
                     userId: user.uid,
                     amount: parseFloat(exactAmtStr),
@@ -774,10 +800,8 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // User ka status update kar do taaki Free Match unlock ho jaye
                 db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
 
-                // UPI Deep Link & QR Code generation
                 let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
                 let qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
@@ -785,8 +809,7 @@
                 document.getElementById('qrExactAmount').innerText = exactAmtStr;
                 document.getElementById('qrDisplaySection').style.display = 'block';
 
-                // 4-Min Timer Start karo
-                startTimer(240); // 240 seconds = 4 minutes
+                startTimer(240);
 
             } catch (error) {
                 console.error("Error:", error);
@@ -814,27 +837,39 @@
         }
 
         function openWithdraw() {
+            let user = auth.currentUser;
+            if(!user) { alert("Pehle login karein!"); return; }
+            document.getElementById('withdrawalModal').style.display = 'flex';
+        }
+
+        function closeWithdrawalModal() {
+            document.getElementById('withdrawalModal').style.display = 'none';
+        }
+
+        function submitWithdrawal(amt) {
+            let user = auth.currentUser;
+            if(!user) return;
+
             let upi = prompt("Apni Withdrawal UPI ID enter karein:");
             if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
-            let amt = prompt("Amount enter karein (Minimum ₹30):");
-            if(!amt || isNaN(amt) || Number(amt) < 30) { alert("Minimum withdrawal ₹30 hai!"); return; }
 
-            db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
+            db.collection("users").doc(user.uid).get().then(doc => {
                 let wallet = doc.data().wallet || 0;
-                if(wallet < Number(amt)) { alert("Insufficient balance!"); return; }
+                if(wallet < amt) { alert("Insufficient balance!"); return; }
 
-                let newWallet = wallet - Number(amt);
-                db.collection("users").doc(auth.currentUser.uid).update({ wallet: newWallet }).then(() => {
+                let newWallet = wallet - amt;
+                db.collection("users").doc(user.uid).update({ wallet: newWallet }).then(() => {
                     db.collection("withdrawals").add({
-                        userId: auth.currentUser.uid,
-                        userName: auth.currentUser.displayName,
-                        email: auth.currentUser.email,
+                        userId: user.uid,
+                        userName: user.displayName,
+                        email: user.email,
                         upi: upi.trim(),
-                        amount: Number(amt),
+                        amount: amt,
                         status: "Pending",
                         timestamp: Date.now()
                     }).then(() => {
                         alert("Withdrawal request submitted successfully!");
+                        closeWithdrawalModal();
                         if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
                             loadWithdrawalHistory();
                         }
