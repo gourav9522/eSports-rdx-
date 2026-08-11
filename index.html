@@ -92,7 +92,6 @@
         .btn-gold { background: var(--gold); color: #000; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         
-        /* Deposit & Withdrawal Buttons Grid */
         .deposit-grid, .withdraw-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -314,7 +313,7 @@
         </div>
     </div>
 
-    <!-- Add Money Modal with updated buttons (10 to 1000) -->
+    <!-- Add Money Modal -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
@@ -346,7 +345,7 @@
         </div>
     </div>
 
-    <!-- Withdrawal Modal with Golden Buttons -->
+    <!-- Withdrawal Modal -->
     <div id="withdrawalModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Withdrawal Request</h3>
@@ -774,6 +773,7 @@
             clearInterval(timerInterval);
         }
 
+        // Render Server Auto-Payment Request + Decimal Logic + QR Generator
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
@@ -790,6 +790,7 @@
             let expiryTime = Date.now() + (4 * 60 * 1000);
 
             try {
+                // 1. Firebase Firestore mein save karein
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
                     userId: user.uid,
                     amount: parseFloat(exactAmtStr),
@@ -799,6 +800,20 @@
                     expiresAt: expiryTime,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                // 2. Render Server par automatic request bhejne ke liye fetch call
+                fetch('https://auto-payment-bot-mm7e.onrender.com', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.uid,
+                        amount: parseFloat(exactAmtStr),
+                        requestedAmount: baseAmount,
+                        txnId: txnId,
+                        userName: user.displayName || "User",
+                        userEmail: user.email || ""
+                    })
+                }).catch(err => console.log("Render Server Error:", err));
 
                 db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
 
