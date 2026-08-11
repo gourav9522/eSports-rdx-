@@ -91,6 +91,31 @@
         .btn-red { background: var(--red); color: #fff; }
         .btn-gold { background: var(--gold); color: #000; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
+        
+        /* Gold Coin Deposit Buttons Grid */
+        .deposit-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .deposit-btn {
+            background: linear-gradient(135deg, #221d0b, #3d310d);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .deposit-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #3d310d, #574512); }
+
         input, select {
             width: 100%;
             padding: 10px;
@@ -287,13 +312,32 @@
         </div>
     </div>
 
+    <!-- Add Money Modal with ₹10 to ₹1000 Gold Coin Buttons & Live QR Code with 4-Min Timer -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
-            <p style="font-size:13px; color:var(--text-gray);">Enter amount to add coins automatically via UPI apps:</p>
-            <input type="number" id="depositAmountInput" placeholder="Enter Amount (e.g. 50)">
-            <button class="btn btn-green" onclick="initiateAutoPayment()">Pay via UPI App</button>
-            <button class="btn btn-red" onclick="closeAddMoneyModal()">Cancel</button>
+            <p style="font-size:13px; color:var(--text-gray);">Select amount to generate instant QR code & request server:</p>
+            
+            <div class="deposit-grid">
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(10)">🪙 ₹10</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(20)">🪙 ₹20</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(50)">🪙 ₹50</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(100)">🪙 ₹100</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(300)">🪙 ₹300</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(1000)">🪙 ₹1000</button>
+            </div>
+
+            <!-- QR Display Section (Hidden initially, shown on click) -->
+            <div id="qrDisplaySection" style="display:none; margin-top:10px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid var(--gold);">
+                <p style="font-size:12px; color:var(--red); font-weight:bold; margin:2px 0;">Time Left: <span id="timer">04:00</span></p>
+                <div style="background:#fff; padding:8px; display:inline-block; border-radius:4px; margin-top:5px;">
+                    <img id="dynamicQRImg" src="" alt="UPI QR" style="width:150px; height:150px; display:block;">
+                </div>
+                <p style="font-size:12px; color:var(--gold); margin:5px 0 2px 0;">Pay Exactly: ₹<span id="qrExactAmount"></span></p>
+                <p style="font-size:11px; color:var(--text-gray);">Scan with PhonePe/GPay/Paytm</p>
+            </div>
+
+            <button class="btn btn-red" onclick="closeAddMoneyModal()" style="margin-top:10px;">Close</button>
         </div>
     </div>
 
@@ -320,6 +364,7 @@
         let notifiedRooms = {}; 
         let currentFilterMode = 'joined';
         let lastActionTime = 0; 
+        let timerInterval = null;
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -334,7 +379,6 @@
         }
 
         function logout() { 
-            // Note: Local storage cache clear nahi hoga, sirf session handle hoga
             auth.signOut();
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('userSection').style.display = 'none';
@@ -347,7 +391,6 @@
                 document.getElementById('authSection').style.display = 'none';
                 document.getElementById('userSection').style.display = 'block';
                 
-                // Pehle localStorage se naam dikhao taaki blank na lage
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
                 localStorage.setItem('user_name_' + user.uid, cachedName);
@@ -364,7 +407,6 @@
         });
 
         function setupUserAccount(user) {
-            // LocalStorage se turant purana balance load karo (Kabhi 0 nahi dikhega)
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
             if (cachedWallet !== null) {
                 document.getElementById('topUserWallet').innerText = cachedWallet;
@@ -372,16 +414,14 @@
                 document.getElementById('topUserWallet').innerText = "...";
             }
 
-            // Firebase se real-time background sync
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
-                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
+                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
                     document.getElementById('topUserWallet').innerText = "0";
                     localStorage.setItem('user_wallet_' + user.uid, "0");
                 } else {
                     let walletVal = doc.data().wallet || 0;
                     document.getElementById('topUserWallet').innerText = walletVal;
-                    // Data permanent save rahega local storage me, delete nahi hoga
                     localStorage.setItem('user_wallet_' + user.uid, walletVal);
                     if(doc.data().name) {
                         localStorage.setItem('user_name_' + user.uid, doc.data().name);
@@ -578,7 +618,7 @@
             let alreadyExists = wins.some(w => w.title === matchTitle);
             if(!alreadyExists) {
                 wins.push({ title: matchTitle, prize: prizeAmount, date: new Date().toLocaleDateString() });
-                localStorage.setItem(key, JSON.stringify(wins)); // Securely stored without auto-delete
+                localStorage.setItem(key, JSON.stringify(wins));
             }
         }
 
@@ -645,26 +685,35 @@
             }
             lastActionTime = currentTime;
 
-            db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
-                if(!existingJoin.empty) {
-                    alert("Aap is match ko pehle hi join kar chuke hain!");
+            db.collection("users").doc(user.uid).get().then(userDoc => {
+                let userData = userDoc.data() || {};
+                let hasDeposited = userData.hasDeposited || false;
+
+                // Rule: Free match join karne ke liye pehle kam se kam ek baar deposit karna zaroori hai
+                if (entryFee === 0 && !hasDeposited) {
+                    alert("Free match join karne ke liye pehle app mein kam se kam ek baar 'Add Money' se deposit karna anivarya hai!");
                     return;
                 }
 
-                db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
-                    if(joinsSnap.size >= maxSlots) {
-                        alert("Match is Full! Max seat limit reached.");
+                db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
+                    if(!existingJoin.empty) {
+                        alert("Aap is match ko pehle hi join kar chuke hain!");
                         return;
                     }
 
-                    let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
-                    if(!ffId || ffId.trim().length < 5) {
-                        alert("Please enter a valid Free Fire ID!");
-                        return;
-                    }
+                    db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
+                        if(joinsSnap.size >= maxSlots) {
+                            alert("Match is Full! Max seat limit reached.");
+                            return;
+                        }
 
-                    db.collection("users").doc(user.uid).get().then(userDoc => {
-                        let wallet = userDoc.data().wallet || 0;
+                        let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
+                        if(!ffId || ffId.trim().length < 5) {
+                            alert("Please enter a valid Free Fire ID!");
+                            return;
+                        }
+
+                        let wallet = userData.wallet || 0;
                         if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
 
                         let newWallet = wallet - entryFee;
@@ -689,34 +738,35 @@
         function openSupportModal() { document.getElementById('supportModal').style.display = 'flex'; }
         function closeSupportModal() { document.getElementById('supportModal').style.display = 'none'; }
         function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
-        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; }
+        
+        function closeAddMoneyModal() { 
+            document.getElementById('addMoneyModal').style.display = 'none';
+            document.getElementById('qrDisplaySection').style.display = 'none';
+            clearInterval(timerInterval);
+        }
 
-        async function initiateAutoPayment() {
-            let amountInput = document.getElementById('depositAmountInput').value;
-            let baseAmount = Number(amountInput);
-
-            if (!baseAmount || baseAmount <= 0) {
-                alert("Please enter a valid amount!");
-                return;
-            }
-
+        // Dynamic QR Generation with Unique Decimal & 4-Min Timer for ₹10 to ₹1000 buttons
+        async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
                 alert("Please login first!");
                 return;
             }
 
-            let randomPaise = (Math.floor(Math.random() * 90) + 10) / 100;
-            let finalAmount = baseAmount + randomPaise;
+            // Har amount ke liye unique decimal set taki server turant pehchan sake
+            let decimals = { 10: 0.31, 20: 0.52, 50: 0.15, 100: 0.99, 300: 0.45, 1000: 0.88 };
+            let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
+            let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
             let upiId = "9522856794@fam";
             let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (5 * 60 * 1000);
+            let expiryTime = Date.now() + (4 * 60 * 1000); // 4 Minutes Expiry
 
             try {
+                // Server (Firebase) par request save karein
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
                     userId: user.uid,
-                    amount: finalAmount,
+                    amount: parseFloat(exactAmtStr),
                     requestedAmount: baseAmount,
                     txnId: txnId,
                     status: "Pending",
@@ -724,19 +774,43 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                let exactAmtStr = finalAmount.toFixed(2);
-                let confirmPay = confirm(`Add Money Request Created!\n\nPlease pay exactly: ₹${exactAmtStr}\nUPI ID: ${upiId}\n\nClick OK to open UPI app.`);
+                // User ka status update kar do taaki Free Match unlock ho jaye
+                db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
 
-                if (confirmPay) {
-                    let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
-                    window.location.href = upiUrl;
-                }
+                // UPI Deep Link & QR Code generation
+                let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
+                let qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
-                closeAddMoneyModal();
+                document.getElementById('dynamicQRImg').src = qrApiUrl;
+                document.getElementById('qrExactAmount').innerText = exactAmtStr;
+                document.getElementById('qrDisplaySection').style.display = 'block';
+
+                // 4-Min Timer Start karo
+                startTimer(240); // 240 seconds = 4 minutes
+
             } catch (error) {
                 console.error("Error:", error);
                 alert("Failed to initiate payment request.");
             }
+        }
+
+        function startTimer(duration) {
+            clearInterval(timerInterval);
+            let timer = duration;
+            let timerDisplay = document.getElementById('timer');
+            
+            timerInterval = setInterval(() => {
+                let minutes = parseInt(timer / 60, 10);
+                let seconds = parseInt(timer % 60, 10);
+                timerDisplay.innerText = minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
+                
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.innerText = "Expired";
+                    document.getElementById('qrDisplaySection').style.display = 'none';
+                    alert("QR Code expired! Please generate a new one.");
+                }
+            }, 1000);
         }
 
         function openWithdraw() {
