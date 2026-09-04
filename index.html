@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eSports RDX</title>
+    <title>Esports-rdx</title>
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -23,7 +23,30 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
+
+        /* Cinematic Video Splash Screen */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            transition: opacity 0.6s ease-in-out;
+        }
+        #splash-screen video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000000;
+        }
+
         header {
             background: rgba(22, 27, 34, 0.95);
             padding: 12px 15px;
@@ -201,6 +224,14 @@
 </head>
 <body>
 
+    <!-- Video Splash Screen -->
+    <div id="splash-screen">
+        <video id="intro-video" autoplay muted playsinline>
+            <source src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
     <header>
         <div class="header-left">
             <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
@@ -243,12 +274,15 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
-        <!-- Daily Task Section Integration -->
+        <!-- Daily Task Section Integration (Collapsed view with See All button) -->
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
-            <h3 style="color: var(--gold); margin-top: 0;">🎯 Daily Tasks & Earn</h3>
-            <p style="font-size: 13px; color: var(--text-gray);">Complete tasks or download apps to earn instant coins automatically!</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
+                <button class="mini-btn" onclick="toggleAllTasksModal()" style="background:var(--gold); color:#000;">See All</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 4px;">Complete tasks or download apps to earn instant coins automatically!</p>
             <div id="dailyTasksList" style="margin-top: 10px;">
-                <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
+                <p style="font-size: 13px; color: var(--text-gray);">Loading task...</p>
             </div>
         </div>
 
@@ -288,6 +322,17 @@
             <button class="mini-btn" onclick="showJoinedMatchesOnly()" style="background:#30363d;">My Joined</button>
         </div>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- All Tasks Modal -->
+    <div id="allTasksModal" class="modal">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <h3 style="color:var(--gold);">All Daily Tasks</h3>
+            <div id="allTasksListContent" style="margin: 10px 0; text-align: left;">
+                <p style="font-size: 13px; color: var(--text-gray);">Loading all tasks...</p>
+            </div>
+            <button class="btn btn-red" onclick="toggleAllTasksModal()">Close</button>
+        </div>
     </div>
 
     <div id="monthlyEventModal" class="modal">
@@ -384,6 +429,29 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
+        // Splash Video Handler
+        const introVideo = document.getElementById('intro-video');
+        const splashScreen = document.getElementById('splash-screen');
+
+        function endSplash() {
+            if (introVideo) {
+                introVideo.pause();
+                introVideo.currentTime = 0;
+            }
+            if (splashScreen) {
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                }, 600);
+            }
+        }
+
+        if (introVideo) {
+            introVideo.addEventListener('ended', endSplash);
+            // Fallback timeout in case video event fails
+            setTimeout(endSplash, 25000);
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
             authDomain: "ad-g-55646.firebaseapp.com",
@@ -471,20 +539,26 @@
             });
         }
 
-        // Daily Tasks Loader & Tracker Logic
+        // Daily Tasks Loader & Tracker Logic (Single Preview + See All Modal)
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
+                let allTasksEl = document.getElementById('allTasksListContent');
+
                 if (snapshot.empty) {
                     taskListEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    allTasksEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
                     return;
                 }
 
                 if (!userId) {
                     let html = "";
+                    let firstTaskHtml = "";
+                    let count = 0;
+
                     snapshot.forEach(doc => {
                         let task = doc.data();
-                        html += `
+                        let singleHtml = `
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
@@ -492,8 +566,15 @@
                                 <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
                             </div>
                         `;
+                        html += singleHtml;
+                        if (count === 0) {
+                            firstTaskHtml = singleHtml;
+                        }
+                        count++;
                     });
-                    taskListEl.innerHTML = html;
+
+                    taskListEl.innerHTML = firstTaskHtml;
+                    allTasksEl.innerHTML = html;
                     return;
                 }
 
@@ -504,6 +585,9 @@
                     });
 
                     let html = "";
+                    let firstTaskHtml = "";
+                    let count = 0;
+
                     snapshot.forEach(doc => {
                         let taskId = doc.id;
                         let task = doc.data();
@@ -513,7 +597,7 @@
                             ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
                             : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${taskId}', '${task.link}', ${task.reward})">Start Task</button>`;
 
-                        html += `
+                        let singleHtml = `
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
@@ -521,17 +605,28 @@
                                 ${actionBtn}
                             </div>
                         `;
+                        html += singleHtml;
+                        if (count === 0) {
+                            firstTaskHtml = singleHtml;
+                        }
+                        count++;
                     });
-                    taskListEl.innerHTML = html;
+
+                    taskListEl.innerHTML = firstTaskHtml;
+                    allTasksEl.innerHTML = html;
                 });
             });
+        }
+
+        function toggleAllTasksModal() {
+            let modal = document.getElementById('allTasksModal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
         function startTask(taskId, taskLink, reward) {
             let user = auth.currentUser;
             if(!user) { alert("Please login first!"); return; }
 
-            // Append subId for automatic server tracking via postback
             let finalUrl = taskLink.includes("?") ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
             window.open(finalUrl, '_blank');
             alert(`Task opened! Complete the instructions. Once verified by our server, +${reward} coins will be credited automatically.`);
@@ -850,7 +945,6 @@
             clearInterval(timerInterval);
         }
 
-        // Render Server Auto-Payment Request + Decimal Logic + QR Generator
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
@@ -1004,7 +1098,7 @@
 
         function shareOnWhatsApp() {
             let url = document.getElementById("shareAppUrl").value;
-            let message = "Join eSports RDX app for Free Fire tournaments and win real money! Download here: " + url;
+            let message = "Join Esports-rdx app for Free Fire tournaments and win real money! Download here: " + url;
             window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(message), "_blank");
         }
     </script>
