@@ -279,9 +279,9 @@
 </head>
 <body>
 
-    <!-- Splash Screen Animation -->
+    <!-- Splash Screen Animation (Sound Enabled) -->
     <div id="splashScreen">
-        <video id="splashVideo" src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" autoplay muted playsinline></video>
+        <video id="splashVideo" src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" autoplay playsinline></video>
         <div class="splash-overlay-content">
             <div class="splash-branding">
                 <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
@@ -517,8 +517,16 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // Splash Screen Video End / Dismiss Logic
+        // Splash Screen Video Unmute & Auto-play Handler for Apps (WebView)
         const splashVideo = document.getElementById('splashVideo');
+        
+        // App ke andar audio play ho sake iske liye safety click handler bhi add kar diya hai
+        document.body.addEventListener('click', function() {
+            if(splashVideo.muted) {
+                splashVideo.muted = false;
+            }
+        }, { once: true });
+
         splashVideo.onended = () => {
             dismissSplash();
         };
@@ -591,7 +599,6 @@
             });
         }
 
-        // Daily Tasks Loader & Tracker Logic (Shows 1 task outside + Modal for All)
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
@@ -611,7 +618,6 @@
                         tasksArr.push({ id: doc.id, ...task });
                     });
 
-                    // Render single preview task outside
                     let firstTask = tasksArr[0];
                     taskListEl.innerHTML = `
                         <div style="background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
@@ -622,7 +628,6 @@
                         </div>
                     `;
 
-                    // Render all tasks for modal
                     let allHtml = "";
                     tasksArr.forEach(task => {
                         allHtml += `
