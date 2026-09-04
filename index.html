@@ -23,42 +23,81 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
         }
-
-        /* Cinematic Video Splash Screen */
-        #splash-screen {
+        /* Splash Screen Animation Styles */
+        #splashScreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000000;
+            background-color: #000000;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            z-index: 999999;
-            transition: opacity 0.6s ease-in-out;
+            justify-content: center;
+            overflow: hidden;
+            transition: opacity 0.5s ease;
         }
-        #splash-screen video {
+        #splashScreen video {
             width: 100%;
             height: 100%;
-            object-fit: contain;
-            background: #000000;
+            object-fit: cover;
+            transform: scale(1.15);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .splash-overlay-content {
+            position: relative;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 85%;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        .splash-branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--gold);
+            backdrop-filter: blur(5px);
+        }
+        .splash-branding img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+        }
+        .splash-branding h1 {
+            color: var(--gold);
+            font-size: 20px;
+            margin: 0;
+            font-weight: bold;
+            letter-spacing: 0.5px;
         }
         .skip-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.6);
-            color: #fff;
+            background: linear-gradient(135deg, #2ea44f, #d29922);
+            color: #ffffff;
             border: 1px solid var(--gold);
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+            padding: 10px 24px;
+            font-size: 14px;
             font-weight: bold;
-            z-index: 1000000;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46, 164, 79, 0.3);
+            transition: 0.2s;
+        }
+        .skip-btn:hover {
+            transform: scale(1.05);
         }
 
         header {
@@ -233,18 +272,25 @@
             max-width: 400px;
             text-align: center;
             box-sizing: border-box;
+            max-height: 85vh;
+            overflow-y: auto;
         }
     </style>
 </head>
 <body>
 
-    <!-- Video Splash Screen -->
-    <div id="splash-screen">
-        <button class="skip-btn" onclick="endSplash()">Skip ➔</button>
-        <video id="intro-video" autoplay playsinline>
-            <source src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
+    <!-- Splash Screen Animation -->
+    <div id="splashScreen">
+        <video id="splashVideo" src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" autoplay muted playsinline></video>
+        <div class="splash-overlay-content">
+            <div class="splash-branding">
+                <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
+                <h1>Esports-rdx</h1>
+            </div>
+            <div>
+                <button class="skip-btn" onclick="dismissSplash()">Skip Animation ➔</button>
+            </div>
+        </div>
     </div>
 
     <header>
@@ -289,15 +335,15 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
-        <!-- Daily Task Section Integration -->
+        <!-- Daily Task Section Integration with See All Button -->
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
-                <button class="mini-btn" onclick="toggleAllTasksModal()" style="background:var(--gold); color:#000;">See All</button>
+                <button class="mini-btn" onclick="openAllTasksModal()">See All</button>
             </div>
-            <p style="font-size: 13px; color: var(--text-gray); margin-top: 4px;">Complete tasks or download apps to earn instant coins automatically!</p>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Complete tasks or download apps to earn instant coins automatically!</p>
             <div id="dailyTasksList" style="margin-top: 10px;">
-                <p style="font-size: 13px; color: var(--text-gray);">Loading task...</p>
+                <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
             </div>
         </div>
 
@@ -341,12 +387,12 @@
 
     <!-- All Tasks Modal -->
     <div id="allTasksModal" class="modal">
-        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
-            <h3 style="color:var(--gold);">All Daily Tasks</h3>
-            <div id="allTasksListContent" style="margin: 10px 0; text-align: left;">
+        <div class="modal-content">
+            <h3 style="color:var(--gold); margin-top:0;">All Available Tasks</h3>
+            <div id="allTasksModalList" style="text-align: left; margin: 10px 0;">
                 <p style="font-size: 13px; color: var(--text-gray);">Loading all tasks...</p>
             </div>
-            <button class="btn btn-red" onclick="toggleAllTasksModal()">Close</button>
+            <button class="btn btn-red" onclick="closeAllTasksModal()">Close</button>
         </div>
     </div>
 
@@ -444,31 +490,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Splash Video Handler & Audio Enable
-        const introVideo = document.getElementById('intro-video');
-        const splashScreen = document.getElementById('splash-screen');
-
-        function endSplash() {
-            if (introVideo) {
-                introVideo.pause();
-                introVideo.currentTime = 0;
-            }
-            if (splashScreen) {
-                splashScreen.style.opacity = '0';
-                setTimeout(() => {
-                    splashScreen.style.display = 'none';
-                }, 600);
-            }
-        }
-
-        if (introVideo) {
-            introVideo.play().catch(error => {
-                console.log("Autoplay prevented by browser, enabling audio/click handling.");
-            });
-            introVideo.addEventListener('ended', endSplash);
-            setTimeout(endSplash, 25000);
-        }
-
         const firebaseConfig = {
             apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
             authDomain: "ad-g-55646.firebaseapp.com",
@@ -495,6 +516,20 @@
             'headshot': 'https://archive.org/download/screenshot-20260629-171015-facebook/Screenshot_20260629-171015_Facebook.png',
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
+
+        // Splash Screen Video End / Dismiss Logic
+        const splashVideo = document.getElementById('splashVideo');
+        splashVideo.onended = () => {
+            dismissSplash();
+        };
+
+        function dismissSplash() {
+            let splash = document.getElementById('splashScreen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 500);
+        }
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -556,25 +591,41 @@
             });
         }
 
+        // Daily Tasks Loader & Tracker Logic (Shows 1 task outside + Modal for All)
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
-                let allTasksEl = document.getElementById('allTasksListContent');
+                let allTaskListEl = document.getElementById('allTasksModalList');
 
                 if (snapshot.empty) {
-                    taskListEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
-                    allTasksEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    taskListEl.innerHTML = emptyMsg;
+                    allTaskListEl.innerHTML = emptyMsg;
                     return;
                 }
 
                 if (!userId) {
-                    let html = "";
-                    let firstTaskHtml = "";
-                    let count = 0;
-
+                    let tasksArr = [];
                     snapshot.forEach(doc => {
                         let task = doc.data();
-                        let singleHtml = `
+                        tasksArr.push({ id: doc.id, ...task });
+                    });
+
+                    // Render single preview task outside
+                    let firstTask = tasksArr[0];
+                    taskListEl.innerHTML = `
+                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
+                            <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
+                            <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete this task to earn coins.'}</p>
+                            <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
+                        </div>
+                    `;
+
+                    // Render all tasks for modal
+                    let allHtml = "";
+                    tasksArr.forEach(task => {
+                        allHtml += `
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
@@ -582,15 +633,8 @@
                                 <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
                             </div>
                         `;
-                        html += singleHtml;
-                        if (count === 0) {
-                            firstTaskHtml = singleHtml;
-                        }
-                        count++;
                     });
-
-                    taskListEl.innerHTML = firstTaskHtml;
-                    allTasksEl.innerHTML = html;
+                    allTaskListEl.innerHTML = allHtml;
                     return;
                 }
 
@@ -600,20 +644,36 @@
                         completedTasks[cDoc.data().taskId] = true;
                     });
 
-                    let html = "";
-                    let firstTaskHtml = "";
-                    let count = 0;
-
+                    let tasksArr = [];
                     snapshot.forEach(doc => {
-                        let taskId = doc.id;
-                        let task = doc.data();
-                        let isDone = completedTasks[taskId];
+                        tasksArr.push({ id: doc.id, ...doc.data() });
+                    });
 
+                    if (tasksArr.length > 0) {
+                        let firstTask = tasksArr[0];
+                        let isDoneFirst = completedTasks[firstTask.id];
+                        let actionBtnFirst = isDoneFirst 
+                            ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
+                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${firstTask.id}', '${firstTask.link}', ${firstTask.reward})">Start Task</button>`;
+
+                        taskListEl.innerHTML = `
+                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
+                                <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete this task to earn coins.'}</p>
+                                <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
+                                ${actionBtnFirst}
+                            </div>
+                        `;
+                    }
+
+                    let allHtml = "";
+                    tasksArr.forEach(task => {
+                        let isDone = completedTasks[task.id];
                         let actionBtn = isDone 
                             ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${taskId}', '${task.link}', ${task.reward})">Start Task</button>`;
+                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
 
-                        let singleHtml = `
+                        allHtml += `
                             <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
@@ -621,22 +681,18 @@
                                 ${actionBtn}
                             </div>
                         `;
-                        html += singleHtml;
-                        if (count === 0) {
-                            firstTaskHtml = singleHtml;
-                        }
-                        count++;
                     });
-
-                    taskListEl.innerHTML = firstTaskHtml;
-                    allTasksEl.innerHTML = html;
+                    allTaskListEl.innerHTML = allHtml;
                 });
             });
         }
 
-        function toggleAllTasksModal() {
-            let modal = document.getElementById('allTasksModal');
-            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        function openAllTasksModal() {
+            document.getElementById('allTasksModal').style.display = 'flex';
+        }
+
+        function closeAllTasksModal() {
+            document.getElementById('allTasksModal').style.display = 'none';
         }
 
         function startTask(taskId, taskLink, reward) {
