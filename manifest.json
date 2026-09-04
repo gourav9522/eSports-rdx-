@@ -8,15 +8,15 @@
   "description": "Free Fire Tournaments and Esports platform",
   "icons": [
     {
-      "src": "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg",
+      "src": "https://www.pwabuilder.com/assets/images/icon_512.png",
       "sizes": "192x192",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg",
+      "src": "https://www.pwabuilder.com/assets/images/icon_512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
