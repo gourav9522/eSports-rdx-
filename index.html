@@ -411,7 +411,7 @@
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
                 🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
+                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa सकते hain.<br><br>
                 
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
                 🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
@@ -702,9 +702,30 @@
             let user = auth.currentUser;
             if(!user) { alert("Please login first!"); return; }
 
-            let finalUrl = taskLink.includes("?") ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
+            let finalUrl = taskLink.includes("?") 
+                ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` 
+                : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
+
+            db.collection("task_clicks").add({
+                userId: user.uid,
+                userName: user.displayName || "User",
+                taskId: taskId,
+                finalUrl: finalUrl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.log("DB Log Error:", err));
+
+            fetch('https://auto-payment-bot-mm7e.onrender.com/task-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    userName: user.displayName || "User",
+                    taskId: taskId,
+                    finalUrl: finalUrl
+                })
+            }).catch(err => console.log("Render Background Request Error:", err));
+
             window.open(finalUrl, '_blank');
-            alert(`Task opened! Complete the instructions. Once verified by our server, +${reward} coins will be credited automatically.`);
         }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
