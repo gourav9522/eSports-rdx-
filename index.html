@@ -344,10 +344,10 @@
 
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
+                <h3 style="color: var(--gold); margin: 0;">🎯 Watch Ad & Earn Money</h3>
                 <button class="mini-btn" onclick="openAllTasksModal()">See All</button>
             </div>
-            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Tap on any task to view details and earn instant coins!</p>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Tap on any ad task, watch completely to earn 50% reward coins!</p>
             <div id="dailyTasksList" style="margin-top: 10px;">
                 <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
             </div>
@@ -394,14 +394,12 @@
     <!-- Task Details Modal -->
     <div id="taskDetailsModal" class="modal">
         <div class="modal-content">
-            <h3 id="modalTaskTitle" style="color:var(--gold); margin-top:0;">Task Details</h3>
+            <h3 id="modalTaskTitle" style="color:var(--gold); margin-top:0;">Watch Ad Details</h3>
             <div style="text-align: left; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;">
                 <p style="font-size: 13px; color: #fff; margin: 4px 0;" id="modalTaskDesc"><b>Description:</b> Loading...</p>
-                <p style="font-size: 13px; color: var(--green); margin: 4px 0;" id="modalTaskReward"><b>Reward:</b> Loading...</p>
-                <div style="margin-top: 6px;">
-                    <span style="font-size: 12px; color: var(--text-gray);"><b>Link:</b></span>
-                    <input type="text" id="modalTaskLinkInput" readonly style="font-size: 11px; padding: 5px; margin: 2px 0; background: #161b22; color: var(--gold);">
-                    <button class="btn btn-gold" style="padding: 6px; font-size: 12px; margin-top: 2px;" onclick="copyTaskLink()">📋 Copy Full Link</button>
+                <p style="font-size: 13px; color: var(--green); margin: 4px 0;" id="modalTaskReward"><b>Reward (50%):</b> Loading...</p>
+                <div id="adTimerSection" style="display:none; text-align:center; margin:10px 0; background:#161b22; padding:8px; border-radius:4px; border:1px solid var(--red);">
+                    <p style="font-size:12px; color:var(--red); margin:0;">Ad Complete hone ka wait karein: <span id="adCountdown" style="font-weight:bold; font-size:14px;">15</span>s</p>
                 </div>
             </div>
             <div id="modalTaskActionButton">
@@ -414,7 +412,7 @@
     <!-- All Tasks Modal -->
     <div id="allTasksModal" class="modal">
         <div class="modal-content">
-            <h3 style="color:var(--gold); margin-top:0;">All Available Tasks</h3>
+            <h3 style="color:var(--gold); margin-top:0;">All Available Ad Tasks</h3>
             <div id="allTasksModalList" style="text-align: left; margin: 10px 0;">
                 <p style="font-size: 13px; color: var(--text-gray);">Loading all tasks...</p>
             </div>
@@ -436,19 +434,11 @@
         <div class="modal-content">
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
-                🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
-                
-                🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
-                🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
-                
-                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
-                <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold); word-break:break-all;">Instagram Profile Link</a><br><br>
-                
-                🔗 <b>Referral or Invite Link:</b><br>
+                🇮🇳 <b>Hindi:</b> Ad ko poora watch karne par hi coin add honge. Agar turant add na ho toh 2-3 hours mein update ho jayenge.<br><br>
+                💬 <b>Official Contact:</b> Instagram: <a href="https://www.instagram.com/net_prime_02?igsh=ZmIzZ3djNTg2YmR3" target="_blank" style="color:var(--gold);">Instagram Profile</a><br><br>
+                🔗 <b>Referral Link:</b><br>
                 <input type="text" id="shareAppUrl" value="https://esports-rdx.blogspot.com/?m=0" readonly style="font-size:12px; padding:6px; margin:4px 0;"><br>
                 <button class="btn btn-green" style="padding:6px; font-size:13px; margin-top:2px;" onclick="copyAppUrl()">📋 Copy Link</button>
-                <button class="btn" style="padding:6px; font-size:13px; margin-top:2px; background:#25D366; color:#fff;" onclick="shareOnWhatsApp()">💬 Share on WhatsApp</button>
             </p>
             <button class="btn btn-red" onclick="closeSupportModal()">Close</button>
         </div>
@@ -457,16 +447,11 @@
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
-            <p style="font-size:13px; color:var(--text-gray);">Select amount to generate instant QR code & request server:</p>
             <div class="deposit-grid">
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(10)">🪙 ₹10</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(20)">🪙 ₹20</button>
-                <button class="deposit-btn" onclick="initiateDynamicQRPayment(30)">🪙 ₹30</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(50)">🪙 ₹50</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(100)">🪙 ₹100</button>
-                <button class="deposit-btn" onclick="initiateDynamicQRPayment(150)">🪙 ₹150</button>
-                <button class="deposit-btn" onclick="initiateDynamicQRPayment(200)">🪙 ₹200</button>
-                <button class="deposit-btn" onclick="initiateDynamicQRPayment(300)">🪙 ₹300</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(500)">🪙 ₹500</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(1000)">🪙 ₹1000</button>
             </div>
@@ -483,21 +468,13 @@
 
     <div id="withdrawalModal" class="modal">
         <div class="modal-content">
-            <h3 style="color:var(--gold);">Withdrawal Request</h3>
-            <p style="font-size:13px; color:var(--text-gray);">Select amount to withdraw (Min ₹30):</p>
+            <h3 style="color:var(--gold);">Withdrawal Request (Min ₹500)</h3>
+            <p style="font-size:13px; color:var(--text-gray);">Select amount to withdraw via UPI:</p>
             <div class="withdraw-grid">
-                <button class="withdraw-btn" onclick="submitWithdrawal(30)">🪙 ₹30</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(40)">🪙 ₹40</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(50)">🪙 ₹50</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(55)">🪙 ₹55</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(100)">🪙 ₹100</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(150)">🪙 ₹150</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(200)">🪙 ₹200</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(300)">🪙 ₹300</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(360)">🪙 ₹360</button>
-                <button class="withdraw-btn" onclick="submitWithdrawal(480)">🪙 ₹480</button>
                 <button class="withdraw-btn" onclick="submitWithdrawal(500)">🪙 ₹500</button>
                 <button class="withdraw-btn" onclick="submitWithdrawal(1000)">🪙 ₹1000</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(2000)">🪙 ₹2000</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(5000)">🪙 ₹5000</button>
             </div>
             <button class="btn btn-red" onclick="closeWithdrawalModal()" style="margin-top:10px;">Close</button>
         </div>
@@ -523,12 +500,10 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let monthlyVideoUrlGlobal = "";
-        let notifiedRooms = {}; 
         let currentFilterMode = 'joined';
-        let lastActionTime = 0; 
         let timerInterval = null;
+        let adCountdownInterval = null;
         let allTasksCache = {};
-        let currentGeneratedTaskUrl = "";
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -587,7 +562,7 @@
             document.getElementById('topUserWallet').innerText = cachedWallet !== null ? cachedWallet : "...";
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
-                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
+                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName });
                     document.getElementById('topUserWallet').innerText = "0";
                 } else {
                     let walletVal = doc.data().wallet || 0;
@@ -608,7 +583,7 @@
                 allTasksCache = {};
 
                 if (snapshot.empty) {
-                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active ad tasks available right now.</p>`;
                     taskListEl.innerHTML = emptyMsg;
                     allTaskListEl.innerHTML = emptyMsg;
                     return;
@@ -634,25 +609,27 @@
 
         function renderTaskList(tasksArr, completedTasks, taskListEl, allTaskListEl) {
             let firstTask = tasksArr[0];
+            let halfReward1 = Math.round((firstTask.reward || 10) * 0.5);
             let statusTag1 = completedTasks[firstTask.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
             taskListEl.innerHTML = `
                 <div class="task-card-item" onclick="openTaskDetails('${firstTask.id}')">
                     ${statusTag1}
                     <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
-                    <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete task to earn.'}</p>
-                    <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
+                    <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Watch complete ad to earn.'}</p>
+                    <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward (50%): +${halfReward1} Coins</p>
                 </div>
             `;
 
             let allHtml = "";
             tasksArr.forEach(task => {
+                let halfReward = Math.round((task.reward || 10) * 0.5);
                 let statusTag = completedTasks[task.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
                 allHtml += `
                     <div class="task-card-item" onclick="openTaskDetails('${task.id}')">
                         ${statusTag}
                         <b style="font-size: 13px; color: #fff;">${task.title}</b>
-                        <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete task to earn.'}</p>
-                        <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                        <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Watch complete ad to earn.'}</p>
+                        <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward (50%): +${halfReward} Coins</p>
                     </div>
                 `;
             });
@@ -664,76 +641,79 @@
             if (!task) return;
 
             let user = auth.currentUser;
-            let currentUserId = user ? user.uid : "GUEST_USER";
-
-            let rawLink = task.link || '#';
-            currentGeneratedTaskUrl = '#';
-            if (rawLink !== '#') {
-                let separator = rawLink.includes("?") ? "&" : "?";
-                currentGeneratedTaskUrl = `${rawLink}${separator}subId=${currentUserId}&taskId=${taskId}`;
-            }
+            let halfReward = Math.round((task.reward || 10) * 0.5);
 
             document.getElementById('modalTaskTitle').innerText = task.title;
-            document.getElementById('modalTaskDesc').innerHTML = `<b>Description:</b> ${task.description || 'No description provided.'}`;
-            document.getElementById('modalTaskReward').innerHTML = `<b>Reward:</b> +${task.reward} Coins`;
-            document.getElementById('modalTaskLinkInput').value = currentGeneratedTaskUrl;
+            document.getElementById('modalTaskDesc').innerHTML = `<b>Description:</b> ${task.description || 'Watch the ad completely without skipping.'}`;
+            document.getElementById('modalTaskReward').innerHTML = `<b>Reward (50%):</b> +${halfReward} Coins`;
+            document.getElementById('adTimerSection').style.display = 'none';
 
             let actionBtnContainer = document.getElementById('modalTaskActionButton');
             if (!user) {
-                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="alert('Please login first to complete tasks!');">Login to Open Task</button>`;
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="alert('Please login first!');">Login to Watch Ad</button>`;
             } else {
-                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="startTask('${task.id}', '${task.link}')">Open & Complete Task</button>`;
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="watchAdAndEarn('${task.id}', ${halfReward}, '${task.link || '#'}')">🎬 Watch Full Ad & Earn</button>`;
             }
 
             document.getElementById('taskDetailsModal').style.display = 'flex';
         }
 
-        function copyTaskLink() {
-            let copyInput = document.getElementById("modalTaskLinkInput");
-            copyInput.select();
-            copyInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyInput.value).then(() => {
-                alert("Task Link Copied! Ab aap ise kisi bhi browser mein paste karke khol sakte hain.");
-            }).catch(err => {
-                document.execCommand("copy");
-                alert("Link Copied Successfully!");
-            });
+        function watchAdAndEarn(taskId, halfReward, taskLink) {
+            let user = auth.currentUser;
+            if(!user) return;
+
+            let actionBtnContainer = document.getElementById('modalTaskActionButton');
+            actionBtnContainer.innerHTML = `<button class="btn btn-gray" disabled>Ad Playing... Please Wait</button>`;
+            
+            let timerSec = 15; // 15 seconds complete ad watch timer
+            document.getElementById('adTimerSection').style.display = 'block';
+            document.getElementById('adCountdown').innerText = timerSec;
+
+            if (taskLink && taskLink !== '#') {
+                window.open(taskLink, '_blank');
+            }
+
+            if (adCountdownInterval) clearInterval(adCountdownInterval);
+
+            adCountdownInterval = setInterval(() => {
+                timerSec--;
+                document.getElementById('adCountdown').innerText = timerSec;
+                if (timerSec <= 0) {
+                    clearInterval(adCountdownInterval);
+                    document.getElementById('adTimerSection').style.display = 'none';
+
+                    // Crediting 50% reward to Firebase wallet
+                    db.collection("users").doc(user.uid).get().then(doc => {
+                        let currentWallet = doc.exists ? (doc.data().wallet || 0) : 0;
+                        let updatedWallet = currentWallet + halfReward;
+
+                        db.collection("users").doc(user.uid).update({ wallet: updatedWallet }).then(() => {
+                            db.collection("task_completions").add({
+                                userId: user.uid,
+                                taskId: taskId,
+                                rewardGiven: halfReward,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            }).then(() => {
+                                alert(`🎉 Success! Ad fully watched. +${halfReward} coins added to your wallet!`);
+                                closeTaskDetailsModal();
+                                loadDailyTasks(user.uid);
+                            });
+                        });
+                    }).catch(err => {
+                        alert("Error updating wallet. Please try again.");
+                        closeTaskDetailsModal();
+                    });
+                }
+            }, 1000);
         }
 
-        function closeTaskDetailsModal() { document.getElementById('taskDetailsModal').style.display = 'none'; }
+        function closeTaskDetailsModal() { 
+            if (adCountdownInterval) clearInterval(adCountdownInterval);
+            document.getElementById('taskDetailsModal').style.display = 'none'; 
+        }
+
         function openAllTasksModal() { document.getElementById('allTasksModal').style.display = 'flex'; }
         function closeAllTasksModal() { document.getElementById('allTasksModal').style.display = 'none'; }
-
-        function startTask(taskId, taskLink) {
-            let user = auth.currentUser;
-            if(!user) { alert("Please login first!"); return; }
-
-            let separator = taskLink.includes("?") ? "&" : "?";
-            let finalUrl = `${taskLink}${separator}subId=${user.uid}&taskId=${taskId}`;
-
-            fetch('https://auto-payment-bot-mm7e.onrender.com/task-click', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.uid, userName: user.displayName || "User", taskId: taskId, finalUrl: finalUrl }),
-                keepalive: true
-            }).catch(err => console.log("Background request logged"));
-
-            db.collection("task_clicks").add({
-                userId: user.uid,
-                userName: user.displayName || "User",
-                taskId: taskId,
-                finalUrl: finalUrl,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(err => console.log("DB Log Error:", err));
-
-            setTimeout(() => {
-                let win = window.open(finalUrl, '_blank');
-                if (!win) {
-                    window.location.href = finalUrl;
-                }
-                closeTaskDetailsModal();
-            }, 200);
-        }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
             if(doc.exists) {
@@ -890,7 +870,7 @@
             let user = auth.currentUser;
             if (!user) { alert("Please login first!"); return; }
 
-            let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 150: 0.22, 200: 0.38, 300: 0.45, 500: 0.67, 1000: 0.88 };
+            let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 500: 0.67, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
             let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
@@ -908,23 +888,30 @@
         }
 
         function openWithdraw() { document.getElementById('withdrawalModal').style.display = 'flex'; }
-        function closeWithdrawalModal() { document.getElementById('withdrawalModal').style.display = 'none'; }
+        function closeWithdrawalModal() { document.getElementById('withdrawalModal'].style.display = 'none'; }
 
         function submitWithdrawal(amt) {
             let user = auth.currentUser;
             if(!user) return;
-            let upi = prompt("Apni Withdrawal UPI ID enter karein:");
+            
+            // Minimum withdrawal limit set to ₹500 via UPI
+            if(amt < 500) {
+                alert("Minimum withdrawal limit ₹500 hai!");
+                return;
+            }
+
+            let upi = prompt("Apni UPI ID enter karein (e.g. number@paytm):");
             if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
 
             db.collection("users").doc(user.uid).get().then(doc => {
                 let wallet = doc.data().wallet || 0;
-                if(wallet < amt) { alert("Insufficient balance!"); return; }
+                if(wallet < amt) { alert("Insufficient balance in wallet!"); return; }
 
                 db.collection("users").doc(user.uid).update({ wallet: wallet - amt }).then(() => {
                     db.collection("withdrawals").add({
                         userId: user.uid, userName: user.displayName, upi: upi.trim(), amount: amt, status: "Pending", timestamp: Date.now()
                     }).then(() => {
-                        alert("Withdrawal request submitted successfully!");
+                        alert("Withdrawal request submitted successfully! UPI mein 24 hours ke andar mil jayega.");
                         closeWithdrawalModal();
                     });
                 });
@@ -957,11 +944,6 @@
             copyText.select();
             document.execCommand("copy");
             alert("Link Copied Successfully!");
-        }
-
-        function shareOnWhatsApp() {
-            let url = document.getElementById("shareAppUrl").value;
-            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Join Esports-rdx app: " + url), "_blank");
         }
     </script>
 </body>
