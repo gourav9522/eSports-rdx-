@@ -35,6 +35,7 @@
             height: 100%;
             background: #000000;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 999999;
@@ -45,6 +46,19 @@
             height: 100%;
             object-fit: contain;
             background: #000000;
+        }
+        .skip-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: 1px solid var(--gold);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            z-index: 1000000;
         }
 
         header {
@@ -226,7 +240,8 @@
 
     <!-- Video Splash Screen -->
     <div id="splash-screen">
-        <video id="intro-video" autoplay muted playsinline>
+        <button class="skip-btn" onclick="endSplash()">Skip ➔</button>
+        <video id="intro-video" autoplay playsinline>
             <source src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
@@ -274,7 +289,7 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
-        <!-- Daily Task Section Integration (Collapsed view with See All button) -->
+        <!-- Daily Task Section Integration -->
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
@@ -429,7 +444,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Splash Video Handler
+        // Splash Video Handler & Audio Enable
         const introVideo = document.getElementById('intro-video');
         const splashScreen = document.getElementById('splash-screen');
 
@@ -447,8 +462,10 @@
         }
 
         if (introVideo) {
+            introVideo.play().catch(error => {
+                console.log("Autoplay prevented by browser, enabling audio/click handling.");
+            });
             introVideo.addEventListener('ended', endSplash);
-            // Fallback timeout in case video event fails
             setTimeout(endSplash, 25000);
         }
 
@@ -539,7 +556,6 @@
             });
         }
 
-        // Daily Tasks Loader & Tracker Logic (Single Preview + See All Modal)
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
