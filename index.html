@@ -702,18 +702,11 @@
             let user = auth.currentUser;
             if(!user) { alert("Please login first!"); return; }
 
-            let finalUrl = taskLink.includes("?") 
-                ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` 
-                : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
+            // URL ke sath subId aur taskId attach karna
+            let separator = taskLink.includes("?") ? "&" : "?";
+            let finalUrl = `${taskLink}${separator}subId=${user.uid}&taskId=${taskId}`;
 
-            db.collection("task_clicks").add({
-                userId: user.uid,
-                userName: user.displayName || "User",
-                taskId: taskId,
-                finalUrl: finalUrl,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).catch(err => console.log("DB Log Error:", err));
-
+            // 1. Background server ko fetch request bhejna
             fetch('https://auto-payment-bot-mm7e.onrender.com/task-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -722,10 +715,23 @@
                     userName: user.displayName || "User",
                     taskId: taskId,
                     finalUrl: finalUrl
-                })
-            }).catch(err => console.log("Render Background Request Error:", err));
+                }),
+                keepalive: true
+            }).catch(err => console.log("Background request logged"));
 
-            window.open(finalUrl, '_blank');
+            // 2. Firestore mein bhi click log save karna
+            db.collection("task_clicks").add({
+                userId: user.uid,
+                userName: user.displayName || "User",
+                taskId: taskId,
+                finalUrl: finalUrl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.log("DB Log Error:", err));
+
+            // 3. Automatically link open karna user ke liye
+            setTimeout(() => {
+                window.open(finalUrl, '_blank');
+            }, 200);
         }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
