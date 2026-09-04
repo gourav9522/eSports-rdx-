@@ -405,7 +405,7 @@
             <div style="text-align: left; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;">
                 <p style="font-size: 13px; color: #fff; margin: 4px 0;" id="modalTaskDesc"><b>Description:</b> Loading...</p>
                 <p style="font-size: 13px; color: var(--green); margin: 4px 0;" id="modalTaskReward"><b>Reward:</b> Loading...</p>
-                <p style="font-size: 12px; color: var(--text-gray); margin: 4px 0; word-break: break-all;" id="modalTaskLinkContainer"><b>Link:</b> <span id="modalTaskLink">Loading...</span></p>
+                <p style="font-size: 12px; color: var(--text-gray); margin: 4px 0; word-break: break-all;" id="modalTaskLinkContainer"><b>Link:</b> <span id="modalTaskLinkSpan">Loading...</span></p>
             </div>
             <div id="modalTaskActionButton">
                 <!-- Dynamic Action Button will be injected here -->
@@ -711,14 +711,30 @@
             let task = allTasksCache[taskId];
             if (!task) return;
 
+            let user = auth.currentUser;
+            let currentUserId = user ? user.uid : "GUEST_USER";
+
+            // Automatically construct final link with subId and taskId appended
+            let rawLink = task.link || '#';
+            let finalUrl = '#';
+            if (rawLink !== '#') {
+                let separator = rawLink.includes("?") ? "&" : "?";
+                finalUrl = `${rawLink}${separator}subId=${currentUserId}&taskId=${taskId}`;
+            }
+
             document.getElementById('modalTaskTitle').innerText = task.title;
             document.getElementById('modalTaskDesc').innerHTML = `<b>Description:</b> ${task.description || 'No description provided.'}`;
             document.getElementById('modalTaskReward').innerHTML = `<b>Reward:</b> +${task.reward} Coins`;
-            document.getElementById('modalTaskLink').innerText = task.link || '#';
+            
+            // Make link clickable inside modal container
+            let linkSpan = document.getElementById('modalTaskLinkSpan');
+            if (rawLink !== '#') {
+                linkSpan.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--gold); text-decoration:underline;">${finalUrl}</a>`;
+            } else {
+                linkSpan.innerText = 'No Link Provided';
+            }
 
-            let user = auth.currentUser;
             let actionBtnContainer = document.getElementById('modalTaskActionButton');
-
             if (!user) {
                 actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="alert('Please login first to complete tasks!');">Login to Open Task</button>`;
             } else {
@@ -1241,7 +1257,7 @@
             alert("Link Copied Successfully!");
         }
 
-        function shareOnWhatsApp() {
+        function  shareOnWhatsApp() {
             let url = document.getElementById("shareAppUrl").value;
             let message = "Join Esports-rdx app for Free Fire tournaments and win real money! Download here: " + url;
             window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(message), "_blank");
