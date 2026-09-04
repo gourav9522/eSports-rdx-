@@ -428,6 +428,8 @@
                         document.getElementById('topUserName').innerText = doc.data().name;
                     }
                 }
+            }, error => {
+                console.log("Offline mode: Using cached user wallet.");
             });
         }
 
@@ -460,6 +462,12 @@
         function loadMatches() {
             let user = auth.currentUser;
             
+            // ⚡ Offline Cache Fallback: सर्वर का डाटा आने से पहले तुरंत पुराना सेव्ड डाटा दिखाएं
+            let cachedMatchesHTML = localStorage.getItem('cached_matches_html');
+            if (cachedMatchesHTML && document.getElementById('matchesList').innerHTML.includes("Loading")) {
+                document.getElementById('matchesList').innerHTML = cachedMatchesHTML;
+            }
+
             db.collection("matches").onSnapshot(snapshot => {
                 if(snapshot.empty) {
                     document.getElementById('matchesList').innerHTML = "<p>No active matches.</p>";
@@ -545,12 +553,19 @@
                     });
                     
                     let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Upar diye gaye kisi bhi map par click karke tournaments explore karein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>";
-                    document.getElementById('matchesList').innerHTML = html || defaultMsg;
+                    let finalMatchesHTML = html || defaultMsg;
+                    
+                    document.getElementById('matchesList').innerHTML = finalMatchesHTML;
+                    
+                    // ⚡ नया डाटा आने पर लोकल स्टोरेज में सेव कर लें ताकि अगली बार ऑफलाइन में यही दिखे
+                    localStorage.setItem('cached_matches_html', finalMatchesHTML);
                     
                     if(user) {
                         checkUserJoins(user.uid);
                     }
                 });
+            }, error => {
+                console.log("Offline mode: Using cached matches.");
             });
         }
 
@@ -671,6 +686,8 @@
                     `;
                 });
                 document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
+            }).catch(e => {
+                document.getElementById('withdrawalHistoryList').innerHTML = "Unable to load offline withdrawal history.";
             });
         }
 
@@ -689,7 +706,6 @@
                 let userData = userDoc.data() || {};
                 let hasDeposited = userData.hasDeposited || false;
 
-                // Rule: Free match join karne ke liye pehle kam se kam ek baar deposit karna zaroori hai
                 if (entryFee === 0 && !hasDeposited) {
                     alert("Free match join karne ke liye pehle app mein kam se kam ek baar 'Add Money' se deposit karna anivarya hai!");
                     return;
@@ -745,7 +761,6 @@
             clearInterval(timerInterval);
         }
 
-        // Dynamic QR Generation with Unique Decimal & 4-Min Timer for ₹10 to ₹1000 buttons
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
@@ -753,17 +768,15 @@
                 return;
             }
 
-            // Har amount ke liye unique decimal set taki server turant pehchan sake
             let decimals = { 10: 0.31, 20: 0.52, 50: 0.15, 100: 0.99, 300: 0.45, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
             let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
             let upiId = "9522856794@fam";
             let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (4 * 60 * 1000); // 4 Minutes Expiry
+            let expiryTime = Date.now() + (4 * 60 * 1000);
 
             try {
-                // Server (Firebase) par request save karein
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
                     userId: user.uid,
                     amount: parseFloat(exactAmtStr),
@@ -774,10 +787,8 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // User ka status update kar do taaki Free Match unlock ho jaye
                 db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
 
-                // UPI Deep Link & QR Code generation
                 let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
                 let qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 
@@ -785,8 +796,7 @@
                 document.getElementById('qrExactAmount').innerText = exactAmtStr;
                 document.getElementById('qrDisplaySection').style.display = 'block';
 
-                // 4-Min Timer Start karo
-                startTimer(240); // 240 seconds = 4 minutes
+                startTimer(240);
 
             } catch (error) {
                 console.error("Error:", error);
