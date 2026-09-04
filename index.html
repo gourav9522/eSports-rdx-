@@ -24,48 +24,79 @@
             margin: 0;
             padding: 0;
         }
-
-        /* Intro Splash Animation Overlay Styles */
-        #introSplash {
+        /* Splash Screen Animation Styles */
+        #splashScreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #0b0e14;
+            background-color: #000000;
             z-index: 9999;
             display: flex;
-            justify-content: center;
-            align-items: center;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
             transition: opacity 0.5s ease;
         }
-        #introVideo {
+        #splashScreen video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transform: scale(1.15);
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 1;
+        }
+        .splash-overlay-content {
+            position: relative;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 85%;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        .splash-branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--gold);
+            backdrop-filter: blur(5px);
+        }
+        .splash-branding img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+        }
+        .splash-branding h1 {
+            color: var(--gold);
+            font-size: 20px;
+            margin: 0;
+            font-weight: bold;
+            letter-spacing: 0.5px;
         }
         .skip-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 2;
-            background: rgba(216, 153, 34, 0.8);
-            color: #000;
-            border: 2px solid var(--gold);
-            padding: 8px 16px;
+            background: linear-gradient(135deg, #2ea44f, #d29922);
+            color: #ffffff;
+            border: 1px solid var(--gold);
+            padding: 10px 24px;
             font-size: 14px;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 20px;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46, 164, 79, 0.3);
             transition: 0.2s;
         }
         .skip-btn:hover {
-            background: var(--gold);
             transform: scale(1.05);
         }
 
@@ -248,14 +279,18 @@
 </head>
 <body>
 
-    <!-- Intro Splash Animation Video Overlay with Skip Button -->
-    <div id="introSplash">
-        <button class="skip-btn" onclick="closeIntroSplash()">Skip ⏭</button>
-        <video id="introVideo" autoplay muted playsinline onended="closeIntroSplash()">
-            <!-- Yahan apni animation video ka link dal sakte hain -->
-            <source src="https://archive.org/download/intro_animation_placeholder/intro.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
+    <!-- Splash Screen Animation (Sound Enabled) -->
+    <div id="splashScreen">
+        <video id="splashVideo" src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" autoplay playsinline></video>
+        <div class="splash-overlay-content">
+            <div class="splash-branding">
+                <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
+                <h1>Esports-rdx</h1>
+            </div>
+            <div>
+                <button class="skip-btn" onclick="dismissSplash()">Skip Animation ➔</button>
+            </div>
+        </div>
     </div>
 
     <header>
@@ -300,6 +335,7 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
+        <!-- Daily Task Section Integration with See All Button -->
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
@@ -454,19 +490,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Intro Splash Screen Control Script
-        function closeIntroSplash() {
-            const splash = document.getElementById('introSplash');
-            const video = document.getElementById('introVideo');
-            if (splash) {
-                video.pause();
-                splash.style.opacity = '0';
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                }, 500);
-            }
-        }
-
         const firebaseConfig = {
             apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
             authDomain: "ad-g-55646.firebaseapp.com",
@@ -493,6 +516,28 @@
             'headshot': 'https://archive.org/download/screenshot-20260629-171015-facebook/Screenshot_20260629-171015_Facebook.png',
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
+
+        // Splash Screen Video Unmute & Auto-play Handler for Apps (WebView)
+        const splashVideo = document.getElementById('splashVideo');
+        
+        // App ke andar audio play ho sake iske liye safety click handler bhi add kar diya hai
+        document.body.addEventListener('click', function() {
+            if(splashVideo.muted) {
+                splashVideo.muted = false;
+            }
+        }, { once: true });
+
+        splashVideo.onended = () => {
+            dismissSplash();
+        };
+
+        function dismissSplash() {
+            let splash = document.getElementById('splashScreen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 500);
+        }
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
