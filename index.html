@@ -517,10 +517,8 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // Splash Screen Video Unmute & Auto-play Handler for Apps (WebView)
         const splashVideo = document.getElementById('splashVideo');
         
-        // App ke andar audio play ho sake iske liye safety click handler bhi add kar diya hai
         document.body.addEventListener('click', function() {
             if(splashVideo.muted) {
                 splashVideo.muted = false;
