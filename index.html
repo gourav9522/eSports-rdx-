@@ -275,6 +275,19 @@
             max-height: 85vh;
             overflow-y: auto;
         }
+        .task-card-item {
+            background: #0d1117; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid #30363d; 
+            margin-bottom: 8px; 
+            cursor: pointer; 
+            text-align: left;
+            transition: 0.2s;
+        }
+        .task-card-item:hover {
+            border-color: var(--gold);
+        }
     </style>
 </head>
 <body>
@@ -341,7 +354,7 @@
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
                 <button class="mini-btn" onclick="openAllTasksModal()">See All</button>
             </div>
-            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Complete tasks or download apps to earn instant coins automatically!</p>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Tap on any task to view details and earn instant coins!</p>
             <div id="dailyTasksList" style="margin-top: 10px;">
                 <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
             </div>
@@ -385,6 +398,22 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
+    <!-- Task Details Modal -->
+    <div id="taskDetailsModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTaskTitle" style="color:var(--gold); margin-top:0;">Task Details</h3>
+            <div style="text-align: left; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;">
+                <p style="font-size: 13px; color: #fff; margin: 4px 0;" id="modalTaskDesc"><b>Description:</b> Loading...</p>
+                <p style="font-size: 13px; color: var(--green); margin: 4px 0;" id="modalTaskReward"><b>Reward:</b> Loading...</p>
+                <p style="font-size: 12px; color: var(--text-gray); margin: 4px 0; word-break: break-all;" id="modalTaskLinkContainer"><b>Link:</b> <span id="modalTaskLink">Loading...</span></p>
+            </div>
+            <div id="modalTaskActionButton">
+                <!-- Dynamic Action Button will be injected here -->
+            </div>
+            <button class="btn btn-red" onclick="closeTaskDetailsModal()" style="margin-top: 5px;">Close</button>
+        </div>
+    </div>
+
     <!-- All Tasks Modal -->
     <div id="allTasksModal" class="modal">
         <div class="modal-content">
@@ -411,7 +440,7 @@
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
                 🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa सकते hain.<br><br>
+                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
                 
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
                 🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
@@ -509,6 +538,7 @@
         let currentFilterMode = 'joined';
         let lastActionTime = 0; 
         let timerInterval = null;
+        let allTasksCache = {};
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -601,6 +631,7 @@
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
                 let allTaskListEl = document.getElementById('allTasksModalList');
+                allTasksCache = {};
 
                 if (snapshot.empty) {
                     let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
@@ -609,31 +640,28 @@
                     return;
                 }
 
-                if (!userId) {
-                    let tasksArr = [];
-                    snapshot.forEach(doc => {
-                        let task = doc.data();
-                        tasksArr.push({ id: doc.id, ...task });
-                    });
+                snapshot.forEach(doc => {
+                    allTasksCache[doc.id] = { id: doc.id, ...doc.data() };
+                });
 
+                if (!userId) {
+                    let tasksArr = Object.values(allTasksCache);
                     let firstTask = tasksArr[0];
                     taskListEl.innerHTML = `
-                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
+                        <div class="task-card-item" onclick="openTaskDetails('${firstTask.id}')">
                             <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
                             <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete this task to earn coins.'}</p>
                             <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
-                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
                         </div>
                     `;
 
                     let allHtml = "";
                     tasksArr.forEach(task => {
                         allHtml += `
-                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <div class="task-card-item" onclick="openTaskDetails('${task.id}')">
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
                                 <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
                             </div>
                         `;
                     });
@@ -647,47 +675,61 @@
                         completedTasks[cDoc.data().taskId] = true;
                     });
 
-                    let tasksArr = [];
-                    snapshot.forEach(doc => {
-                        tasksArr.push({ id: doc.id, ...doc.data() });
-                    });
+                    let tasksArr = Object.values(allTasksCache);
 
                     if (tasksArr.length > 0) {
                         let firstTask = tasksArr[0];
-                        let isDoneFirst = completedTasks[firstTask.id];
-                        let actionBtnFirst = isDoneFirst 
-                            ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${firstTask.id}', '${firstTask.link}', ${firstTask.reward})">Start Task</button>`;
-
+                        let statusTag = completedTasks[firstTask.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
                         taskListEl.innerHTML = `
-                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; border: 1px solid #30363d;">
+                            <div class="task-card-item" onclick="openTaskDetails('${firstTask.id}')">
+                                ${statusTag}
                                 <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete this task to earn coins.'}</p>
                                 <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
-                                ${actionBtnFirst}
                             </div>
                         `;
                     }
 
                     let allHtml = "";
                     tasksArr.forEach(task => {
-                        let isDone = completedTasks[task.id];
-                        let actionBtn = isDone 
-                            ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
-
+                        let statusTag = completedTasks[task.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
                         allHtml += `
-                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <div class="task-card-item" onclick="openTaskDetails('${task.id}')">
+                                ${statusTag}
                                 <b style="font-size: 13px; color: #fff;">${task.title}</b>
                                 <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
                                 <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                                ${actionBtn}
                             </div>
                         `;
                     });
                     allTaskListEl.innerHTML = allHtml;
                 });
             });
+        }
+
+        function openTaskDetails(taskId) {
+            let task = allTasksCache[taskId];
+            if (!task) return;
+
+            document.getElementById('modalTaskTitle').innerText = task.title;
+            document.getElementById('modalTaskDesc').innerHTML = `<b>Description:</b> ${task.description || 'No description provided.'}`;
+            document.getElementById('modalTaskReward').innerHTML = `<b>Reward:</b> +${task.reward} Coins`;
+            document.getElementById('modalTaskLink').innerText = task.link || '#';
+
+            let user = auth.currentUser;
+            let actionBtnContainer = document.getElementById('modalTaskActionButton');
+
+            if (!user) {
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="alert('Please login first to complete tasks!');">Login to Open Task</button>`;
+            } else {
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="startTask('${task.id}', '${task.link}')">Open & Complete Task</button>`;
+            }
+
+            document.getElementById('taskDetailsModal').style.display = 'flex';
+        }
+
+        function closeTaskDetailsModal() {
+            document.getElementById('taskDetailsModal').style.display = 'none';
         }
 
         function openAllTasksModal() {
@@ -698,15 +740,15 @@
             document.getElementById('allTasksModal').style.display = 'none';
         }
 
-        function startTask(taskId, taskLink, reward) {
+        function startTask(taskId, taskLink) {
             let user = auth.currentUser;
             if(!user) { alert("Please login first!"); return; }
 
-            // URL ke sath subId aur taskId attach karna
+            // Attach subId and taskId safely to the destination URL
             let separator = taskLink.includes("?") ? "&" : "?";
             let finalUrl = `${taskLink}${separator}subId=${user.uid}&taskId=${taskId}`;
 
-            // 1. Background server ko fetch request bhejna
+            // 1. Send background request to the server webhook/bot
             fetch('https://auto-payment-bot-mm7e.onrender.com/task-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -719,7 +761,7 @@
                 keepalive: true
             }).catch(err => console.log("Background request logged"));
 
-            // 2. Firestore mein bhi click log save karna
+            // 2. Log click in Firestore database
             db.collection("task_clicks").add({
                 userId: user.uid,
                 userName: user.displayName || "User",
@@ -728,9 +770,10 @@
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }).catch(err => console.log("DB Log Error:", err));
 
-            // 3. Automatically link open karna user ke liye
+            // 3. Open the link in a new tab
             setTimeout(() => {
                 window.open(finalUrl, '_blank');
+                closeTaskDetailsModal();
             }, 200);
         }
 
