@@ -411,6 +411,19 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
+        // --- CACHE LOAD ON STARTUP ---
+        window.addEventListener('DOMContentLoaded', () => {
+            let cachedName = localStorage.getItem('cache_topUserName');
+            let cachedWallet = localStorage.getItem('cache_topUserWallet');
+            let cachedMatches = localStorage.getItem('cache_matchesList');
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList');
+
+            if(cachedName) document.getElementById('topUserName').innerText = cachedName;
+            if(cachedWallet) document.getElementById('topUserWallet').innerText = cachedWallet;
+            if(cachedMatches) document.getElementById('matchesList').innerHTML = cachedMatches;
+            if(cachedTasks) document.getElementById('dailyTasksList').innerHTML = cachedTasks;
+        });
+
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithRedirect(provider).catch(e => alert(e.message));
@@ -418,6 +431,8 @@
 
         function logout() { 
             auth.signOut();
+            localStorage.removeItem('cache_topUserName');
+            localStorage.removeItem('cache_topUserWallet');
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('userSection').style.display = 'none';
             document.getElementById('topUserName').innerText = "Guest User";
@@ -431,6 +446,7 @@
                 
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
+                localStorage.setItem('cache_topUserName', cachedName);
                 localStorage.setItem('user_name_' + user.uid, cachedName);
 
                 setupUserAccount(user);
@@ -441,6 +457,8 @@
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('topUserName').innerText = "Guest User";
                 document.getElementById('topUserWallet').innerText = "0";
+                localStorage.setItem('cache_topUserName', "Guest User");
+                localStorage.setItem('cache_topUserWallet', "0");
                 loadMatches();
                 loadDailyTasks(null);
             }
@@ -450,8 +468,7 @@
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
             if (cachedWallet !== null) {
                 document.getElementById('topUserWallet').innerText = cachedWallet;
-            } else {
-                document.getElementById('topUserWallet').innerText = "...";
+                localStorage.setItem('cache_topUserWallet', cachedWallet);
             }
 
             db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -459,24 +476,29 @@
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
                     document.getElementById('topUserWallet').innerText = "0";
                     localStorage.setItem('user_wallet_' + user.uid, "0");
+                    localStorage.setItem('cache_topUserWallet', "0");
                 } else {
                     let walletVal = doc.data().wallet || 0;
                     document.getElementById('topUserWallet').innerText = walletVal;
                     localStorage.setItem('user_wallet_' + user.uid, walletVal);
+                    localStorage.setItem('cache_topUserWallet', walletVal);
                     if(doc.data().name) {
                         localStorage.setItem('user_name_' + user.uid, doc.data().name);
                         document.getElementById('topUserName').innerText = doc.data().name;
+                        localStorage.setItem('cache_topUserName', doc.data().name);
                     }
                 }
             });
         }
 
-        // Daily Tasks Loader & Tracker Logic
+        // Daily Tasks Loader & Tracker Logic with Cache
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
                 let taskListEl = document.getElementById('dailyTasksList');
                 if (snapshot.empty) {
-                    taskListEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    taskListEl.innerHTML = emptyMsg;
+                    localStorage.setItem('cache_dailyTasksList', emptyMsg);
                     return;
                 }
 
@@ -494,6 +516,7 @@
                         `;
                     });
                     taskListEl.innerHTML = html;
+                    localStorage.setItem('cache_dailyTasksList', html);
                     return;
                 }
 
@@ -523,6 +546,7 @@
                         `;
                     });
                     taskListEl.innerHTML = html;
+                    localStorage.setItem('cache_dailyTasksList', html);
                 });
             });
         }
@@ -531,7 +555,6 @@
             let user = auth.currentUser;
             if(!user) { alert("Please login first!"); return; }
 
-            // Append subId for automatic server tracking via postback
             let finalUrl = taskLink.includes("?") ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
             window.open(finalUrl, '_blank');
             alert(`Task opened! Complete the instructions. Once verified by our server, +${reward} coins will be credited automatically.`);
@@ -563,12 +586,15 @@
             document.getElementById('monthlyEventModal').style.display = 'none';
         }
 
+        // Matches Loader with Cache Integration
         function loadMatches() {
             let user = auth.currentUser;
             
             db.collection("matches").onSnapshot(snapshot => {
                 if(snapshot.empty) {
-                    document.getElementById('matchesList').innerHTML = "<p>No active matches.</p>";
+                    let msg = "<p>No active matches.</p>";
+                    document.getElementById('matchesList').innerHTML = msg;
+                    localStorage.setItem('cache_matchesList', msg);
                     return;
                 }
 
@@ -651,7 +677,10 @@
                     });
                     
                     let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Upar diye gaye kisi bhi map par click karke tournaments explore karein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>";
-                    document.getElementById('matchesList').innerHTML = html || defaultMsg;
+                    let finalContent = html || defaultMsg;
+                    
+                    document.getElementById('matchesList').innerHTML = finalContent;
+                    localStorage.setItem('cache_matchesList', finalContent);
                     
                     if(user) {
                         checkUserJoins(user.uid);
@@ -850,7 +879,6 @@
             clearInterval(timerInterval);
         }
 
-        // Render Server Auto-Payment Request + Decimal Logic + QR Generator
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
             if (!user) {
