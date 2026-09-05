@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eSports RDX</title>
+    <title>Esports-rdx</title>
     <style>
         :root {
             --bg-color: #0b0e14;
@@ -24,6 +24,79 @@
             margin: 0;
             padding: 0;
         }
+        #splashScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: opacity 0.5s ease;
+        }
+        #splashScreen video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scale(1.15);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .splash-overlay-content {
+            position: relative;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 85%;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        .splash-branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--gold);
+            backdrop-filter: blur(5px);
+        }
+        .splash-branding img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+        }
+        .splash-branding h1 {
+            color: var(--gold);
+            font-size: 20px;
+            margin: 0;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .skip-btn {
+            background: linear-gradient(135deg, #2ea44f, #d29922);
+            color: #ffffff;
+            border: 1px solid var(--gold);
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46, 164, 79, 0.3);
+            transition: 0.2s;
+        }
+        .skip-btn:hover { transform: scale(1.05); }
+
         header {
             background: rgba(22, 27, 34, 0.95);
             padding: 12px 15px;
@@ -92,14 +165,15 @@
         .btn-gold { background: var(--gold); color: #000; }
         .btn-gray { background: #30363d; color: var(--text-gray); cursor: not-allowed; }
         
-        /* Gold Coin Deposit Buttons Grid */
-        .deposit-grid {
+        .deposit-grid, .withdraw-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
             margin: 10px 0;
+            max-height: 250px;
+            overflow-y: auto;
         }
-        .deposit-btn {
+        .deposit-btn, .withdraw-btn {
             background: linear-gradient(135deg, #221d0b, #3d310d);
             border: 1px solid var(--gold);
             color: var(--gold);
@@ -111,10 +185,10 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            font-size: 14px;
+            font-size: 13px;
             transition: 0.2s;
         }
-        .deposit-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #3d310d, #574512); }
+        .deposit-btn:hover, .withdraw-btn:hover { transform: scale(1.02); background: linear-gradient(135deg, #3d310d, #574512); }
 
         input, select {
             width: 100%;
@@ -195,10 +269,36 @@
             max-width: 400px;
             text-align: center;
             box-sizing: border-box;
+            max-height: 85vh;
+            overflow-y: auto;
         }
+        .task-card-item {
+            background: #0d1117; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid #30363d; 
+            margin-bottom: 8px; 
+            cursor: pointer; 
+            text-align: left;
+            transition: 0.2s;
+        }
+        .task-card-item:hover { border-color: var(--gold); }
     </style>
 </head>
 <body>
+
+    <div id="splashScreen">
+        <video id="splashVideo" src="https://archive.org/download/in-shot-20260904-134834941/InShot_20260904_134834941.mp4" autoplay playsinline></video>
+        <div class="splash-overlay-content">
+            <div class="splash-branding">
+                <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
+                <h1>Esports-rdx</h1>
+            </div>
+            <div>
+                <button class="skip-btn" onclick="dismissSplash()">Skip Animation ➔</button>
+            </div>
+        </div>
+    </div>
 
     <header>
         <div class="header-left">
@@ -242,6 +342,17 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
+        <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
+                <button class="mini-btn" onclick="openAllTasksModal()">See All</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 2px;">Tap on any task to view details and earn instant coins!</p>
+            <div id="dailyTasksList" style="margin-top: 10px;">
+                <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
+            </div>
+        </div>
+
         <div id="winningHistoryBox" class="card" style="display:none;">
             <h3>My Winning History</h3>
             <div id="winningHistoryList">Loading winning history...</div>
@@ -280,6 +391,37 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
+    <!-- Task Details Modal -->
+    <div id="taskDetailsModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTaskTitle" style="color:var(--gold); margin-top:0;">Task Details</h3>
+            <div style="text-align: left; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;">
+                <p style="font-size: 13px; color: #fff; margin: 4px 0;" id="modalTaskDesc"><b>Description:</b> Loading...</p>
+                <p style="font-size: 13px; color: var(--green); margin: 4px 0;" id="modalTaskReward"><b>Reward:</b> Loading...</p>
+                <div style="margin-top: 6px;">
+                    <span style="font-size: 12px; color: var(--text-gray);"><b>Link:</b></span>
+                    <input type="text" id="modalTaskLinkInput" readonly style="font-size: 11px; padding: 5px; margin: 2px 0; background: #161b22; color: var(--gold);">
+                    <button class="btn btn-gold" style="padding: 6px; font-size: 12px; margin-top: 2px;" onclick="copyTaskLink()">📋 Copy Full Link</button>
+                </div>
+            </div>
+            <div id="modalTaskActionButton">
+                <!-- Dynamic Action Button -->
+            </div>
+            <button class="btn btn-red" onclick="closeTaskDetailsModal()" style="margin-top: 5px;">Close</button>
+        </div>
+    </div>
+
+    <!-- All Tasks Modal -->
+    <div id="allTasksModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold); margin-top:0;">All Available Tasks</h3>
+            <div id="allTasksModalList" style="text-align: left; margin: 10px 0;">
+                <p style="font-size: 13px; color: var(--text-gray);">Loading all tasks...</p>
+            </div>
+            <button class="btn btn-red" onclick="closeAllTasksModal()">Close</button>
+        </div>
+    </div>
+
     <div id="monthlyEventModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Monthly Event Video</h3>
@@ -312,32 +454,52 @@
         </div>
     </div>
 
-    <!-- Add Money Modal with ₹10 to ₹1000 Gold Coin Buttons & Live QR Code with 4-Min Timer -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
             <p style="font-size:13px; color:var(--text-gray);">Select amount to generate instant QR code & request server:</p>
-            
             <div class="deposit-grid">
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(10)">🪙 ₹10</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(20)">🪙 ₹20</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(30)">🪙 ₹30</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(50)">🪙 ₹50</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(100)">🪙 ₹100</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(150)">🪙 ₹150</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(200)">🪙 ₹200</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(300)">🪙 ₹300</button>
+                <button class="deposit-btn" onclick="initiateDynamicQRPayment(500)">🪙 ₹500</button>
                 <button class="deposit-btn" onclick="initiateDynamicQRPayment(1000)">🪙 ₹1000</button>
             </div>
-
-            <!-- QR Display Section (Hidden initially, shown on click) -->
             <div id="qrDisplaySection" style="display:none; margin-top:10px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid var(--gold);">
                 <p style="font-size:12px; color:var(--red); font-weight:bold; margin:2px 0;">Time Left: <span id="timer">04:00</span></p>
                 <div style="background:#fff; padding:8px; display:inline-block; border-radius:4px; margin-top:5px;">
                     <img id="dynamicQRImg" src="" alt="UPI QR" style="width:150px; height:150px; display:block;">
                 </div>
                 <p style="font-size:12px; color:var(--gold); margin:5px 0 2px 0;">Pay Exactly: ₹<span id="qrExactAmount"></span></p>
-                <p style="font-size:11px; color:var(--text-gray);">Scan with PhonePe/GPay/Paytm</p>
             </div>
-
             <button class="btn btn-red" onclick="closeAddMoneyModal()" style="margin-top:10px;">Close</button>
+        </div>
+    </div>
+
+    <div id="withdrawalModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">Withdrawal Request</h3>
+            <p style="font-size:13px; color:var(--text-gray);">Select amount to withdraw (Min ₹30):</p>
+            <div class="withdraw-grid">
+                <button class="withdraw-btn" onclick="submitWithdrawal(30)">🪙 ₹30</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(40)">🪙 ₹40</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(50)">🪙 ₹50</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(55)">🪙 ₹55</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(100)">🪙 ₹100</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(150)">🪙 ₹150</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(200)">🪙 ₹200</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(300)">🪙 ₹300</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(360)">🪙 ₹360</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(480)">🪙 ₹480</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(500)">🪙 ₹500</button>
+                <button class="withdraw-btn" onclick="submitWithdrawal(1000)">🪙 ₹1000</button>
+            </div>
+            <button class="btn btn-red" onclick="closeWithdrawalModal()" style="margin-top:10px;">Close</button>
         </div>
     </div>
 
@@ -365,6 +527,8 @@
         let currentFilterMode = 'joined';
         let lastActionTime = 0; 
         let timerInterval = null;
+        let allTasksCache = {};
+        let currentGeneratedTaskUrl = "";
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -372,6 +536,19 @@
             'headshot': 'https://archive.org/download/screenshot-20260629-171015-facebook/Screenshot_20260629-171015_Facebook.png',
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
+
+        const splashVideo = document.getElementById('splashVideo');
+        document.body.addEventListener('click', function() {
+            if(splashVideo.muted) { splashVideo.muted = false; }
+        }, { once: true });
+
+        splashVideo.onended = () => { dismissSplash(); };
+
+        function dismissSplash() {
+            let splash = document.getElementById('splashScreen');
+            splash.style.opacity = '0';
+            setTimeout(() => { splash.style.display = 'none'; }, 500);
+        }
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -390,35 +567,28 @@
             if (user) {
                 document.getElementById('authSection').style.display = 'none';
                 document.getElementById('userSection').style.display = 'block';
-                
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
-                localStorage.setItem('user_name_' + user.uid, cachedName);
-
                 setupUserAccount(user);
                 loadMatches();
+                loadDailyTasks(user.uid);
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('topUserName').innerText = "Guest User";
                 document.getElementById('topUserWallet').innerText = "0";
                 loadMatches();
+                loadDailyTasks(null);
             }
         });
 
         function setupUserAccount(user) {
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
-            if (cachedWallet !== null) {
-                document.getElementById('topUserWallet').innerText = cachedWallet;
-            } else {
-                document.getElementById('topUserWallet').innerText = "...";
-            }
-
+            document.getElementById('topUserWallet').innerText = cachedWallet !== null ? cachedWallet : "...";
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
                     document.getElementById('topUserWallet').innerText = "0";
-                    localStorage.setItem('user_wallet_' + user.uid, "0");
                 } else {
                     let walletVal = doc.data().wallet || 0;
                     document.getElementById('topUserWallet').innerText = walletVal;
@@ -428,20 +598,148 @@
                         document.getElementById('topUserName').innerText = doc.data().name;
                     }
                 }
-            }, error => {
-                console.log("Offline mode: Using cached user wallet.");
             });
+        }
+
+        function loadDailyTasks(userId) {
+            db.collection("tasks").onSnapshot(snapshot => {
+                let taskListEl = document.getElementById('dailyTasksList');
+                let allTaskListEl = document.getElementById('allTasksModalList');
+                allTasksCache = {};
+
+                if (snapshot.empty) {
+                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                    taskListEl.innerHTML = emptyMsg;
+                    allTaskListEl.innerHTML = emptyMsg;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    allTasksCache[doc.id] = { id: doc.id, ...doc.data() };
+                });
+
+                let tasksArr = Object.values(allTasksCache);
+                if (!userId) {
+                    renderTaskList(tasksArr, {}, taskListEl, allTaskListEl);
+                    return;
+                }
+
+                db.collection("task_completions").where("userId", "==", userId).get().then(completionsSnap => {
+                    let completedTasks = {};
+                    completionsSnap.forEach(cDoc => { completedTasks[cDoc.data().taskId] = true; });
+                    renderTaskList(tasksArr, completedTasks, taskListEl, allTaskListEl);
+                });
+            });
+        }
+
+        function renderTaskList(tasksArr, completedTasks, taskListEl, allTaskListEl) {
+            let firstTask = tasksArr[0];
+            let statusTag1 = completedTasks[firstTask.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
+            taskListEl.innerHTML = `
+                <div class="task-card-item" onclick="openTaskDetails('${firstTask.id}')">
+                    ${statusTag1}
+                    <b style="font-size: 13px; color: #fff;">${firstTask.title}</b>
+                    <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${firstTask.description || 'Complete task to earn.'}</p>
+                    <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${firstTask.reward} Coins</p>
+                </div>
+            `;
+
+            let allHtml = "";
+            tasksArr.forEach(task => {
+                let statusTag = completedTasks[task.id] ? `<span style="color:var(--green); font-size:11px; float:right;">Completed ✓</span>` : "";
+                allHtml += `
+                    <div class="task-card-item" onclick="openTaskDetails('${task.id}')">
+                        ${statusTag}
+                        <b style="font-size: 13px; color: #fff;">${task.title}</b>
+                        <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete task to earn.'}</p>
+                        <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                    </div>
+                `;
+            });
+            allTaskListEl.innerHTML = allHtml;
+        }
+
+        function openTaskDetails(taskId) {
+            let task = allTasksCache[taskId];
+            if (!task) return;
+
+            let user = auth.currentUser;
+            let currentUserId = user ? user.uid : "GUEST_USER";
+
+            let rawLink = task.link || '#';
+            currentGeneratedTaskUrl = '#';
+            if (rawLink !== '#') {
+                let separator = rawLink.includes("?") ? "&" : "?";
+                currentGeneratedTaskUrl = `${rawLink}${separator}subId=${currentUserId}&taskId=${taskId}`;
+            }
+
+            document.getElementById('modalTaskTitle').innerText = task.title;
+            document.getElementById('modalTaskDesc').innerHTML = `<b>Description:</b> ${task.description || 'No description provided.'}`;
+            document.getElementById('modalTaskReward').innerHTML = `<b>Reward:</b> +${task.reward} Coins`;
+            document.getElementById('modalTaskLinkInput').value = currentGeneratedTaskUrl;
+
+            let actionBtnContainer = document.getElementById('modalTaskActionButton');
+            if (!user) {
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="alert('Please login first to complete tasks!');">Login to Open Task</button>`;
+            } else {
+                actionBtnContainer.innerHTML = `<button class="btn btn-green" onclick="startTask('${task.id}', '${task.link}')">Open & Complete Task</button>`;
+            }
+
+            document.getElementById('taskDetailsModal').style.display = 'flex';
+        }
+
+        function copyTaskLink() {
+            let copyInput = document.getElementById("modalTaskLinkInput");
+            copyInput.select();
+            copyInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyInput.value).then(() => {
+                alert("Task Link Copied! Ab aap ise kisi bhi browser mein paste karke khol sakte hain.");
+            }).catch(err => {
+                document.execCommand("copy");
+                alert("Link Copied Successfully!");
+            });
+        }
+
+        function closeTaskDetailsModal() { document.getElementById('taskDetailsModal').style.display = 'none'; }
+        function openAllTasksModal() { document.getElementById('allTasksModal').style.display = 'flex'; }
+        function closeAllTasksModal() { document.getElementById('allTasksModal').style.display = 'none'; }
+
+        function startTask(taskId, taskLink) {
+            let user = auth.currentUser;
+            if(!user) { alert("Please login first!"); return; }
+
+            let separator = taskLink.includes("?") ? "&" : "?";
+            let finalUrl = `${taskLink}${separator}subId=${user.uid}&taskId=${taskId}`;
+
+            fetch('https://auto-payment-bot-mm7e.onrender.com/task-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.uid, userName: user.displayName || "User", taskId: taskId, finalUrl: finalUrl }),
+                keepalive: true
+            }).catch(err => console.log("Background request logged"));
+
+            db.collection("task_clicks").add({
+                userId: user.uid,
+                userName: user.displayName || "User",
+                taskId: taskId,
+                finalUrl: finalUrl,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(err => console.log("DB Log Error:", err));
+
+            setTimeout(() => {
+                let win = window.open(finalUrl, '_blank');
+                if (!win) {
+                    window.location.href = finalUrl;
+                }
+                closeTaskDetailsModal();
+            }, 200);
         }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
             if(doc.exists) {
                 let data = doc.data();
-                if(data.bannerUrl) {
-                    document.getElementById('dynamicBanner').src = data.bannerUrl;
-                }
-                if(data.monthlyVideoUrl) {
-                    monthlyVideoUrlGlobal = data.monthlyVideoUrl;
-                }
+                if(data.bannerUrl) document.getElementById('dynamicBanner').src = data.bannerUrl;
+                if(data.monthlyVideoUrl) monthlyVideoUrlGlobal = data.monthlyVideoUrl;
             }
         });
 
@@ -455,19 +753,10 @@
             }
         }
 
-        function closeMonthlyEventModal() {
-            document.getElementById('monthlyEventModal').style.display = 'none';
-        }
+        function closeMonthlyEventModal() { document.getElementById('monthlyEventModal').style.display = 'none'; }
 
         function loadMatches() {
             let user = auth.currentUser;
-            
-            // ⚡ Offline Cache Fallback: सर्वर का डाटा आने से पहले तुरंत पुराना सेव्ड डाटा दिखाएं
-            let cachedMatchesHTML = localStorage.getItem('cached_matches_html');
-            if (cachedMatchesHTML && document.getElementById('matchesList').innerHTML.includes("Loading")) {
-                document.getElementById('matchesList').innerHTML = cachedMatchesHTML;
-            }
-
             db.collection("matches").onSnapshot(snapshot => {
                 if(snapshot.empty) {
                     document.getElementById('matchesList').innerHTML = "<p>No active matches.</p>";
@@ -482,58 +771,36 @@
                         let jData = jDoc.data();
                         let mId = jData.matchId;
                         joinCounts[mId] = (joinCounts[mId] || 0) + 1;
-                        
-                        if(user && jData.userId === user.uid) {
-                            userJoinedMatches[mId] = true;
-                        }
+                        if(user && jData.userId === user.uid) userJoinedMatches[mId] = true;
                     });
 
                     let html = "";
                     snapshot.forEach(doc => {
                         let m = doc.data();
                         let docId = doc.id;
-                        
                         let titleLower = m.title.toLowerCase();
 
                         if (currentFilterMode === 'joined') {
-                            if (!user || !userJoinedMatches[docId]) {
-                                return;
-                            }
+                            if (!user || !userJoinedMatches[docId]) return;
                         } else {
-                            if (!titleLower.includes(currentFilterMode)) {
-                                return;
-                            }
+                            if (!titleLower.includes(currentFilterMode)) return;
                         }
 
                         let maxSlots = m.maxSlots || 60;
                         let filledCount = joinCounts[docId] || 0;
-                        let percent = (filledCount / maxSlots) * 100;
-                        if(percent > 100) percent = 100;
-
+                        let percent = Math.min((filledCount / maxSlots) * 100, 100);
                         let feeDisplay = m.entryFee === 0 ? '<span style="color:var(--green); font-weight:bold;">FREE Match</span>' : `Entry Fee: ₹${m.entryFee}`;
 
-                        let autoPhoto = 'https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg';
-                        if (titleLower.includes('lone wolf')) {
-                            autoPhoto = mapPhotos['lone wolf'];
-                        } else if (titleLower.includes('battle royal') || titleLower.includes('battle royale')) {
-                            autoPhoto = mapPhotos['battle royal'];
-                        } else if (titleLower.includes('headshot')) {
-                            autoPhoto = mapPhotos['headshot'];
-                        } else if (titleLower.includes('classic squad') || titleLower.includes('squad')) {
-                            autoPhoto = mapPhotos['classic squad'];
-                        }
+                        let autoPhoto = mapPhotos['battle royal'];
+                        if (titleLower.includes('lone wolf')) autoPhoto = mapPhotos['lone wolf'];
+                        else if (titleLower.includes('headshot')) autoPhoto = mapPhotos['headshot'];
+                        else if (titleLower.includes('classic squad')) autoPhoto = mapPhotos['classic squad'];
 
                         let matchPhoto = m.photoUrl || m.bannerUrl || autoPhoto;
-
                         let isCompleted = m.status === "completed";
-                        let actionButtonHtml = "";
-
-                        if (isCompleted) {
-                            let statusText = m.winnerStatusText || "Completed";
-                            actionButtonHtml = `<button class="btn btn-gray" disabled>Match ${statusText} (Winner: ${m.winnerName || 'None'})</button>`;
-                        } else {
-                            actionButtonHtml = `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
-                        }
+                        let actionButtonHtml = isCompleted ? 
+                            `<button class="btn btn-gray" disabled>Match Completed</button>` : 
+                            `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
 
                         html += `
                             <div class="card match-item" data-title="${titleLower}" data-id="${m.matchId.toLowerCase()}">
@@ -541,80 +808,43 @@
                                 <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
                                 <p>${feeDisplay} | Prize: ₹${m.prize}</p>
                                 <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
-                                <div class="progress-container">
-                                    <div class="progress-bar" style="width: ${percent}%;"></div>
-                                </div>
+                                <div class="progress-container"><div class="progress-bar" style="width: ${percent}%;"></div></div>
                                 <p>Time: <span class="timer">${m.time}</span></p>
-                                
                                 ${actionButtonHtml}
                                 <div id="match-details-${docId}" style="margin-top:8px;"></div>
                             </div>
                         `;
                     });
                     
-                    let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Upar diye gaye kisi bhi map par click karke tournaments explore karein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>";
-                    let finalMatchesHTML = html || defaultMsg;
-                    
-                    document.getElementById('matchesList').innerHTML = finalMatchesHTML;
-                    
-                    // ⚡ नया डाटा आने पर लोकल स्टोरेज में सेव कर लें ताकि अगली बार ऑफलाइन में यही दिखे
-                    localStorage.setItem('cached_matches_html', finalMatchesHTML);
-                    
-                    if(user) {
-                        checkUserJoins(user.uid);
-                    }
+                    document.getElementById('matchesList').innerHTML = html || (user ? "<p>Aapne abhi tak koi match join nahi kiya hai.</p>" : "<p>Pehle login karein.</p>");
+                    if(user) checkUserJoins(user.uid);
                 });
-            }, error => {
-                console.log("Offline mode: Using cached matches.");
             });
         }
 
         function checkUserJoins(uid) {
             db.collection("joins").where("userId", "==", uid).get().then(snapshot => {
                 let joinedMatches = {};
-                snapshot.forEach(doc => {
-                    let data = doc.data();
-                    joinedMatches[data.matchId] = data;
-                });
+                snapshot.forEach(doc => { joinedMatches[doc.data().matchId] = doc.data(); });
 
                 db.collection("matches").get().then(mSnap => {
                     mSnap.forEach(mDoc => {
                         let docId = mDoc.id;
                         let mData = mDoc.data();
-
                         let actionDiv = document.getElementById(`match-action-${docId}`);
                         let detailsDiv = document.getElementById(`match-details-${docId}`);
 
                         if(joinedMatches[docId]) {
                             let jData = joinedMatches[docId];
-                            
                             if (actionDiv && mData.status !== "completed") {
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
                             }
-                            
                             let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
-                            
-                            if (mData.roomDetails && mData.roomDetails !== 'Pending') {
-                                let notifKey = docId + "_" + mData.roomDetails;
-                                if (!notifiedRooms[notifKey]) {
-                                    notifiedRooms[notifKey] = true;
-                                    alert(`🚨 Room ID & Password Updated for Match: ${mData.title}!\nRoom Details: ${mData.roomDetails}`);
-                                }
-                            }
-
-                            let currentUserName = auth.currentUser ? auth.currentUser.displayName : "User";
-                            if(mData.status === "completed" && mData.winnerName === currentUserName) {
-                                saveWinningRecord(mData.title, mData.prize);
-                            }
-
                             if(detailsDiv) {
-                                let winnerStatus = mData.status === "completed" ? `<p style="margin:2px 0; color:var(--green);"><b>Winner:</b> ${mData.winnerName || 'Not Announced'}</p>` : "";
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
-                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${currentUserName}</p>
-                                        <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
+                                        <p style="margin:2px 0; color:var(--gold);"><b>FF ID:</b> ${jData.ffId}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
-                                        ${winnerStatus}
                                     </div>
                                 `;
                             }
@@ -624,127 +854,27 @@
             });
         }
 
-        function saveWinningRecord(matchTitle, prizeAmount) {
-            let user = auth.currentUser;
-            if(!user) return;
-            let key = 'user_wins_' + user.uid;
-            let wins = JSON.parse(localStorage.getItem(key)) || [];
-            
-            let alreadyExists = wins.some(w => w.title === matchTitle);
-            if(!alreadyExists) {
-                wins.push({ title: matchTitle, prize: prizeAmount, date: new Date().toLocaleDateString() });
-                localStorage.setItem(key, JSON.stringify(wins));
-            }
-        }
-
-        function toggleWinningHistory() {
-            let box = document.getElementById('winningHistoryBox');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadWinningHistory();
-        }
-
-        function loadWinningHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-            let key = 'user_wins_' + user.uid;
-            let wins = JSON.parse(localStorage.getItem(key)) || [];
-            
-            let html = "";
-            wins.forEach(w => {
-                html += `
-                    <div style="font-size:13px; margin-bottom:8px;">
-                        <p style="margin:2px 0; color:var(--gold);"><b>Match:</b> ${w.title}</p>
-                        <p style="margin:2px 0; color:var(--green);"><b>Won Prize:</b> ₹${w.prize}</p>
-                        <p style="margin:2px 0; font-size:11px; color:var(--text-gray);">Date: ${w.date}</p>
-                    </div>
-                    <hr style="border-color:#30363d">
-                `;
-            });
-            document.getElementById('winningHistoryList').innerHTML = html || "No winning history found.";
-        }
-
-        function toggleWithdrawalHistory() {
-            let box = document.getElementById('withdrawalHistoryBox');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadWithdrawalHistory();
-        }
-
-        function loadWithdrawalHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-
-            db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
-                let html = "";
-                snapshot.forEach(doc => {
-                    let w = doc.data();
-                    html += `
-                        <div style="font-size:13px; margin-bottom:8px;">
-                            <p style="margin:2px 0;"><b>Amount:</b> ₹${w.amount} | <b>UPI:</b> ${w.upi}</p>
-                            <p style="margin:2px 0;"><b>Status:</b> <span style="color:var(--gold);">${w.status}</span></p>
-                        </div>
-                        <hr style="border-color:#30363d">
-                    `;
-                });
-                document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
-            }).catch(e => {
-                document.getElementById('withdrawalHistoryList').innerHTML = "Unable to load offline withdrawal history.";
-            });
-        }
-
         function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
             let user = auth.currentUser;
             if(!user) { alert("Pehle login karein!"); return; }
 
-            let currentTime = Date.now();
-            if (currentTime - lastActionTime < 3000) {
-                alert("Please wait a moment before trying again.");
-                return;
-            }
-            lastActionTime = currentTime;
-
             db.collection("users").doc(user.uid).get().then(userDoc => {
                 let userData = userDoc.data() || {};
-                let hasDeposited = userData.hasDeposited || false;
-
-                if (entryFee === 0 && !hasDeposited) {
-                    alert("Free match join karne ke liye pehle app mein kam se kam ek baar 'Add Money' se deposit karna anivarya hai!");
-                    return;
-                }
-
                 db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
-                    if(!existingJoin.empty) {
-                        alert("Aap is match ko pehle hi join kar chuke hain!");
-                        return;
-                    }
+                    if(!existingJoin.empty) { alert("Aap is match ko pehle hi join kar chuke hain!"); return; }
 
-                    db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
-                        if(joinsSnap.size >= maxSlots) {
-                            alert("Match is Full! Max seat limit reached.");
-                            return;
-                        }
+                    let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
+                    if(!ffId || ffId.trim().length < 5) { alert("Please enter a valid Free Fire ID!"); return; }
 
-                        let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
-                        if(!ffId || ffId.trim().length < 5) {
-                            alert("Please enter a valid Free Fire ID!");
-                            return;
-                        }
+                    let wallet = userData.wallet || 0;
+                    if(wallet < entryFee) { alert("Wallet me balance kam hai!"); return; }
 
-                        let wallet = userData.wallet || 0;
-                        if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
-
-                        let newWallet = wallet - entryFee;
-                        db.collection("users").doc(user.uid).update({ wallet: newWallet }).then(() => {
-                            db.collection("joins").add({
-                                matchId: matchId,
-                                userId: user.uid,
-                                userName: user.displayName,
-                                userEmail: user.email,
-                                ffId: ffId.trim(),
-                                timestamp: Date.now()
-                            }).then(() => {
-                                alert(`Successfully Joined ${matchTitle}!`);
-                                loadMatches();
-                            });
+                    db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee }).then(() => {
+                        db.collection("joins").add({
+                            matchId: matchId, userId: user.uid, userName: user.displayName, ffId: ffId.trim(), timestamp: Date.now()
+                        }).then(() => {
+                            alert(`Successfully Joined ${matchTitle}!`);
+                            loadMatches();
                         });
                     });
                 });
@@ -754,100 +884,48 @@
         function openSupportModal() { document.getElementById('supportModal').style.display = 'flex'; }
         function closeSupportModal() { document.getElementById('supportModal').style.display = 'none'; }
         function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
-        
-        function closeAddMoneyModal() { 
-            document.getElementById('addMoneyModal').style.display = 'none';
-            document.getElementById('qrDisplaySection').style.display = 'none';
-            clearInterval(timerInterval);
-        }
+        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; document.getElementById('qrDisplaySection').style.display = 'none'; clearInterval(timerInterval); }
 
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
-            if (!user) {
-                alert("Please login first!");
-                return;
-            }
+            if (!user) { alert("Please login first!"); return; }
 
-            let decimals = { 10: 0.31, 20: 0.52, 50: 0.15, 100: 0.99, 300: 0.45, 1000: 0.88 };
+            let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 150: 0.22, 200: 0.38, 300: 0.45, 500: 0.67, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
             let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
-            let upiId = "9522856794@fam";
-            let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (4 * 60 * 1000);
 
             try {
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
-                    userId: user.uid,
-                    amount: parseFloat(exactAmtStr),
-                    requestedAmount: baseAmount,
-                    txnId: txnId,
-                    status: "Pending",
-                    expiresAt: expiryTime,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    userId: user.uid, amount: parseFloat(exactAmtStr), requestedAmount: baseAmount, txnId: txnId, status: "Pending", createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
-
-                let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
-                let qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
-
-                document.getElementById('dynamicQRImg').src = qrApiUrl;
+                let upiUrl = `upi://pay?pa=9522856794@fam&pn=Esports%20RDX&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
+                document.getElementById('dynamicQRImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
                 document.getElementById('qrExactAmount').innerText = exactAmtStr;
                 document.getElementById('qrDisplaySection').style.display = 'block';
-
-                startTimer(240);
-
-            } catch (error) {
-                console.error("Error:", error);
-                alert("Failed to initiate payment request.");
-            }
+            } catch (error) { alert("Failed to initiate payment request."); }
         }
 
-        function startTimer(duration) {
-            clearInterval(timerInterval);
-            let timer = duration;
-            let timerDisplay = document.getElementById('timer');
-            
-            timerInterval = setInterval(() => {
-                let minutes = parseInt(timer / 60, 10);
-                let seconds = parseInt(timer % 60, 10);
-                timerDisplay.innerText = minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
-                
-                if (--timer < 0) {
-                    clearInterval(timerInterval);
-                    timerDisplay.innerText = "Expired";
-                    document.getElementById('qrDisplaySection').style.display = 'none';
-                    alert("QR Code expired! Please generate a new one.");
-                }
-            }, 1000);
-        }
+        function openWithdraw() { document.getElementById('withdrawalModal').style.display = 'flex'; }
+        function closeWithdrawalModal() { document.getElementById('withdrawalModal').style.display = 'none'; }
 
-        function openWithdraw() {
+        function submitWithdrawal(amt) {
+            let user = auth.currentUser;
+            if(!user) return;
             let upi = prompt("Apni Withdrawal UPI ID enter karein:");
             if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
-            let amt = prompt("Amount enter karein (Minimum ₹30):");
-            if(!amt || isNaN(amt) || Number(amt) < 30) { alert("Minimum withdrawal ₹30 hai!"); return; }
 
-            db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
+            db.collection("users").doc(user.uid).get().then(doc => {
                 let wallet = doc.data().wallet || 0;
-                if(wallet < Number(amt)) { alert("Insufficient balance!"); return; }
+                if(wallet < amt) { alert("Insufficient balance!"); return; }
 
-                let newWallet = wallet - Number(amt);
-                db.collection("users").doc(auth.currentUser.uid).update({ wallet: newWallet }).then(() => {
+                db.collection("users").doc(user.uid).update({ wallet: wallet - amt }).then(() => {
                     db.collection("withdrawals").add({
-                        userId: auth.currentUser.uid,
-                        userName: auth.currentUser.displayName,
-                        email: auth.currentUser.email,
-                        upi: upi.trim(),
-                        amount: Number(amt),
-                        status: "Pending",
-                        timestamp: Date.now()
+                        userId: user.uid, userName: user.displayName, upi: upi.trim(), amount: amt, status: "Pending", timestamp: Date.now()
                     }).then(() => {
                         alert("Withdrawal request submitted successfully!");
-                        if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
-                            loadWithdrawalHistory();
-                        }
+                        closeWithdrawalModal();
                     });
                 });
             });
@@ -855,15 +933,10 @@
 
         function filterMatches() {
             let query = document.getElementById('searchMatch').value.toLowerCase();
-            let items = document.querySelectorAll('.match-item');
-            items.forEach(item => {
+            document.querySelectorAll('.match-item').forEach(item => {
                 let title = item.getAttribute('data-title');
                 let id = item.getAttribute('data-id');
-                if(title.includes(query) || id.includes(query)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
+                item.style.display = (title.includes(query) || id.includes(query)) ? "block" : "none";
             });
         }
 
@@ -876,7 +949,6 @@
         function showJoinedMatchesOnly() {
             currentFilterMode = 'joined';
             document.getElementById('sectionTitle').innerText = "Joined Matches";
-            document.getElementById('searchMatch').value = '';
             loadMatches();
         }
 
@@ -889,8 +961,7 @@
 
         function shareOnWhatsApp() {
             let url = document.getElementById("shareAppUrl").value;
-            let message = "Join eSports RDX app for Free Fire tournaments and win real money! Download here: " + url;
-            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(message), "_blank");
+            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Join Esports-rdx app: " + url), "_blank");
         }
     </script>
 </body>
