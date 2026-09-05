@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSports RDX - Admin Panel</title>
+    <style>
+        body { background: #0b0e14; color: #fff; font-family: Arial, sans-serif; padding: 15px; margin: 0; }
+        .box { background: #161b22; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #30363d; }
+        input, button, select, textarea { width: 100%; padding: 10px; margin: 6px 0; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: #fff; box-sizing: border-box; }
+        .btn { background: #d29922; color: #000; font-weight: bold; cursor: pointer; }
+        .btn-green { background: #2ea44f; color: #fff; }
+        .btn-red { background: #da3633; color: #fff; }
+        .user-card { background: #21262d; padding: 10px; margin-top: 8px; border-radius: 5px; border: 1px solid #30363d; }
+        .joined-user-box { background: #0d1117; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 13px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div id="loginBox" class="box">
+        <h2>Admin Login</h2>
+        <input type="password" id="adminPass" placeholder="Enter Password (....)">
+        <button class="btn" onclick="checkAdmin()">Login</button>
+    </div>
+
+    <div id="adminPanel" class="box" style="display:none;">
+        <h2>Admin Dashboard</h2>
+
+        <!-- Banner Setup -->
+        <div class="box">
+            <h3>Change Banner Link</h3>
+            <input type="text" id="bannerUrlInput" placeholder="Enter Banner Image URL">
+            <button class="btn btn-green" onclick="updateBanner()">Update Banner</button>
+        </div>
+
+        <!-- Monthly Event Video Setup -->
+        <div class="box">
+            <h3>Manage Monthly Event Video Link</h3>
+            <input type="text" id="eventVideoUrlInput" placeholder="Enter Monthly Event Video URL (Embed Link)">
+            <button class="btn btn-green" onclick="updateEventVideo()">Update Event Video Link</button>
+        </div>
+
+        <!-- Create Daily Task / Offer Setup -->
+        <div class="box">
+            <h3>🎯 Create Daily Task / Offer</h3>
+            <input type="text" id="taskTitle" placeholder="Task Title (e.g. Download App X)">
+            <textarea id="taskDesc" placeholder="Task Short Description / Instructions" rows="2"></textarea>
+            <input type="text" id="taskLink" placeholder="Offer Link / CPAlead URL">
+            <input type="number" id="taskReward" placeholder="Coin Reward (e.g. 10)">
+            <button class="btn btn-green" onclick="createTask()">Publish Task</button>
+            <div id="adminTasksList" style="margin-top: 10px;">Loading tasks...</div>
+        </div>
+
+        <!-- Create Match -->
+        <div class="box">
+            <h3>Create Match</h3>
+            <input type="text" id="mTitle" placeholder="Match Title (e.g. Free Fire 1v1)">
+            <input type="text" id="mId" placeholder="Match ID">
+            <input type="number" id="mFee" placeholder="Entry Fee">
+            <input type="number" id="mPrize" placeholder="Win Prize">
+            <input type="number" id="mSlots" placeholder="Max Slots (e.g. 60)">
+            <input type="text" id="mTime" placeholder="Match Time">
+            <input type="text" id="mRoom" placeholder="Room ID & Password (Optional)">
+            <button class="btn btn-green" onclick="createMatch()">Publish Match</button>
+        </div>
+
+        <!-- Active Matches Control (Button to Toggle) -->
+        <div class="box">
+            <h3>Active Matches Control & Joined Users</h3>
+            <button class="btn" onclick="toggleMatches()">Show / Hide Active Matches</button>
+            <div id="adminMatchesList" style="display:none; margin-top: 10px;">Loading matches...</div>
+        </div>
+
+        <!-- Withdrawal Requests -->
+        <div class="box">
+            <h3>Withdrawal Requests (History)</h3>
+            <div id="requestsList">Loading withdrawal requests...</div>
+        </div>
+
+        <!-- Users Management with Search Bar -->
+        <div class="box">
+            <h3>Registered Users & Coin Management</h3>
+            <input type="text" id="userSearchInput" placeholder="Search user by name..." onkeyup="filterUsers()">
+            <div id="allUsersList">Loading users...</div>
+        </div>
+
+        <!-- Deposit / Add Money Requests -->
+        <div class="box">
+            <h3>Deposit / Add Money Requests (History)</h3>
+            <div id="depositsList">Loading deposit requests...</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmBn7wouhYeKsLzZMoy21velN6XYT4JNo",
+            authDomain: "ad-g-55646.firebaseapp.com",
+            databaseURL: "https://ad-g-55646-default-rtdb.firebaseio.com",
+            projectId: "ad-g-55646",
+            storageBucket: "ad-g-55646.firebasestorage.app",
+            messagingSenderId: "519103871395",
+            appId: "1:519103871395:web:21b967c0dc5e646d9d8216",
+            measurementId: "G-L4R8KEVLGY"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let allUsersData = [];
+
+        function checkAdmin() {
+            let pass = document.getElementById('adminPass').value;
+            if(pass === "9522") {
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadAdminData();
+            } else {
+                alert("Wrong Password!");
+            }
+        }
+
+        function toggleMatches() {
+            let listDiv = document.getElementById('adminMatchesList');
+            listDiv.style.display = listDiv.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function updateBanner() {
+            let url = document.getElementById('bannerUrlInput').value;
+            db.collection("settings").doc("config").set({ bannerUrl: url }, { merge: true }).then(() => {
+                alert("Banner Updated!");
+            });
+        }
+
+        function updateEventVideo() {
+            let url = document.getElementById('eventVideoUrlInput').value;
+            db.collection("settings").doc("config").set({ monthlyVideoUrl: url }, { merge: true }).then(() => {
+                alert("Monthly Video URL Updated!");
+            });
+        }
+
+        function createTask() {
+            let title = document.getElementById('taskTitle').value;
+            let description = document.getElementById('taskDesc').value;
+            let link = document.getElementById('taskLink').value;
+            let reward = Number(document.getElementById('taskReward').value);
+
+            if(!title || !link || !reward) {
+                alert("Please fill Task Title, Link, and Reward!");
+                return;
+            }
+
+            db.collection("tasks").add({
+                title: title,
+                description: description,
+                link: link,
+                reward: reward,
+                createdAt: Date.now()
+            }).then(() => {
+                alert("Task Created Successfully!");
+                document.getElementById('taskTitle').value = "";
+                document.getElementById('taskDesc').value = "";
+                document.getElementById('taskLink').value = "";
+                document.getElementById('taskReward').value = "";
+            }).catch(e => alert(e.message));
+        }
+
+        function deleteAdminTask(taskId) {
+            if(confirm("Are you sure you want to delete this task?")) {
+                db.collection("tasks").doc(taskId).delete().then(() => alert("Task Deleted!"));
+            }
+        }
+
+        function createMatch() {
+            let title = document.getElementById('mTitle').value;
+            let matchId = document.getElementById('mId').value;
+            if(!title || !matchId) { alert("Fill Match Title and ID!"); return; }
+
+            db.collection("matches").add({
+                title: title,
+                matchId: matchId,
+                entryFee: Number(document.getElementById('mFee').value) || 0,
+                prize: Number(document.getElementById('mPrize').value) || 0,
+                maxSlots: Number(document.getElementById('mSlots').value) || 60,
+                time: document.getElementById('mTime').value || "Soon",
+                roomDetails: document.getElementById('mRoom').value || "Pending",
+                status: "active",
+                winnerName: "",
+                winnerUserId: "",
+                winnerStatusText: "Completed"
+            }).then(() => alert("Match Created Successfully!"));
+        }
+
+        function loadAdminData() {
+            db.collection("settings").doc("config").get().then(doc => {
+                if(doc.exists) {
+                    if(doc.data().bannerUrl) document.getElementById('bannerUrlInput').value = doc.data().bannerUrl;
+                    if(doc.data().monthlyVideoUrl) document.getElementById('eventVideoUrlInput').value = doc.data().monthlyVideoUrl;
+                }
+            });
+
+            // Load Tasks inside Admin Panel
+            db.collection("tasks").onSnapshot(snapshot => {
+                let html = "";
+                snapshot.forEach(doc => {
+                    let task = doc.data();
+                    let tId = doc.id;
+                    html += `
+                        <div class="user-card" style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <b style="color:#d29922;">${task.title}</b> (${task.reward} Coins)<br>
+                                <span style="font-size:11px; color:#8b949e; word-break:break-all;">${task.link}</span>
+                            </div>
+                            <button class="btn btn-red" style="width:auto; padding:6px 12px;" onclick="deleteAdminTask('${tId}')">Delete</button>
+                        </div>
+                    `;
+                });
+                document.getElementById('adminTasksList').innerHTML = html || "<p style='font-size:12px; color:#8b949e;'>No tasks created yet.</p>";
+            });
+
+            db.collection("matches").onSnapshot(matchSnapshot => {
+                db.collection("joins").onSnapshot(joinsSnapshot => {
+                    let joinsMap = {};
+                    joinsSnapshot.forEach(jDoc => {
+                        let jData = jDoc.data();
+                        if(!joinsMap[jData.matchId]) {
+                            joinsMap[jData.matchId] = [];
+                        }
+                        joinsMap[jData.matchId].push(jData);
+                    });
+
+                    let html = "";
+                    matchSnapshot.forEach(doc => {
+                        let m = doc.data(); 
+                        let id = doc.id;
+                        let matchJoins = joinsMap[id] || [];
+
+                        let joinedHtml = "<b>Joined Players (Select Winner):</b><br>";
+                        if(matchJoins.length === 0) {
+                            joinedHtml += "<span style='color:gray;'>No players joined yet.</span>";
+                        } else {
+                            matchJoins.forEach(uData => {
+                                let isWinner = m.winnerUserId === uData.userId ? "checked" : "";
+                                joinedHtml += `
+                                    <div class="joined-user-box">
+                                        <span>👤 <b>Name:</b> ${uData.userName || 'N/A'} | 🆔 <b>FF ID:</b> ${uData.ffId || 'N/A'}</span>
+                                        <label style="cursor:pointer; color:#2ea44f; font-weight:bold;">
+                                            <input type="radio" name="winner-${id}" value="${uData.userId}" ${isWinner} onchange="setWinnerAndPrize('${id}', '${uData.userId}', '${uData.userName}', ${m.prize})"> 🏆 Winner
+                                        </label>
+                                    </div>`;
+                            });
+                        }
+
+                        let isCompletedChecked = m.status === "completed" ? "checked" : "";
+
+                        html += `
+                            <div class="user-card">
+                                <p><b>${m.title}</b> (ID: ${m.matchId}) - Prize: ₹${m.prize}</p>
+                                <input type="text" id="room-${id}" value="${m.roomDetails !== 'Pending' ? m.roomDetails : ''}" placeholder="Room ID & Pass">
+                                <button class="btn btn-green" onclick="updateRoom('${id}')">Update Room</button>
+                                
+                                <div style="margin: 8px 0; background: #0d1117; padding: 8px; border-radius: 4px;">
+                                    <label style="cursor:pointer; color: #da3633; font-weight: bold;">
+                                        <input type="checkbox" ${isCompletedChecked} onchange="toggleMatchComplete('${id}', this)"> Mark Match as Complete (Close Match)
+                                    </label>
+                                    <p style="margin:4px 0 0 0; font-size:12px; color:#8b949e;">Winner Selected: <b style="color:var(--gold);">${m.winnerName || 'None'}</b></p>
+                                </div>
+
+                                <button class="btn btn-red" onclick="deleteMatch('${id}')">Delete Match</button>
+                                <div style="margin-top: 10px; border-top: 1px dashed #30363d; padding-top: 8px;">${joinedHtml}</div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('adminMatchesList').innerHTML = html || "<p>No matches.</p>";
+                });
+            });
+
+            db.collection("users").onSnapshot(snapshot => {
+                allUsersData = [];
+                snapshot.forEach(doc => {
+                    allUsersData.push({ id: doc.id, data: doc.data() });
+                });
+                renderUsers(allUsersData);
+            });
+
+            db.collection("withdrawals").onSnapshot(snapshot => {
+                let html = "";
+                snapshot.forEach(doc => {
+                    let w = doc.data(); let id = doc.id;
+                    html += `
+                        <div class="user-card">
+                            <p><b>User:</b> ${w.userName} | UPI: <b>${w.upi}</b> | Amount: ₹${w.amount}</p>
+                            <p>Status: ${w.status}</p>
+                            <button class="btn btn-green" onclick="markPaid('${id}')">Mark Paid</button>
+                            <button class="btn btn-red" onclick="deleteDoc('withdrawals', '${id}')">Delete Request</button>
+                        </div>
+                    `;
+                });
+                document.getElementById('requestsList').innerHTML = html || "<p>No withdrawal requests.</p>";
+            });
+
+            db.collection("withdrawals_or_deposits").onSnapshot(snapshot => {
+                let html = "";
+                snapshot.forEach(doc => {
+                    let d = doc.data(); let id = doc.id;
+                    if(d.type === "DEPOSIT") {
+                        html += `
+                            <div class="user-card">
+                                <p><b>User:</b> ${d.userName} | Amount: ₹<b>${d.amount}</b> | UTR: <b style="color:#d29922;">${d.utr}</b></p>
+                                <p>Status: ${d.status}</p>
+                                <button class="btn btn-green" onclick="approveDeposit('${id}', '${d.userId}', ${d.amount})">Approve & Add Coins</button>
+                                <button class="btn btn-red" onclick="deleteDoc('withdrawals_or_deposits', '${id}')">Delete Request</button>
+                            </div>
+                        `;
+                    }
+                });
+                document.getElementById('depositsList').innerHTML = html || "<p>No deposit requests.</p>";
+            });
+        }
+
+        function setWinnerAndPrize(matchDocId, userId, userName, prizeAmount) {
+            db.collection("matches").doc(matchDocId).update({ 
+                winnerName: userName, 
+                winnerUserId: userId,
+                status: "completed",
+                winnerStatusText: "Completed"
+            }).then(() => {
+                db.collection("users").doc(userId).get().then(userDoc => {
+                    let currentWallet = userDoc.exists ? (userDoc.data().wallet || 0) : 0;
+                    let newWallet = currentWallet + Number(prizeAmount);
+                    db.collection("users").doc(userId).update({ wallet: newWallet }).then(() => {
+                        alert(`Winner set to ${userName} and ₹${prizeAmount} added to their wallet successfully!`);
+                    });
+                });
+            });
+        }
+
+        function toggleMatchComplete(matchDocId, checkbox) {
+            let newStatus = checkbox.checked ? "completed" : "active";
+            let updateData = { status: newStatus };
+            if (checkbox.checked) {
+                updateData.winnerStatusText = "Completed";
+            }
+            db.collection("matches").doc(matchDocId).update(updateData).then(() => {
+                alert(checkbox.checked ? "Match marked as Completed!" : "Match reactivated!");
+            });
+        }
+
+        function renderUsers(users) {
+            let html = "";
+            users.forEach(userObj => {
+                let u = userObj.data; 
+                let id = userObj.id;
+                html += `
+                    <div class="user-card">
+                        <p><b>Name:</b> ${u.name || 'User'} | Wallet: ₹${u.wallet || 0}</p>
+                        <input type="number" id="coin-${id}" placeholder="Add/Remove Coins">
+                        <button class="btn btn-green" onclick="updateCoins('${id}')">Update Coins</button>
+                    </div>
+                `;
+            });
+            document.getElementById('allUsersList').innerHTML = html || "<p>No users found.</p>";
+        }
+
+        function filterUsers() {
+            let query = document.getElementById('userSearchInput').value.toLowerCase();
+            let filtered = allUsersData.filter(userObj => {
+                let name = (userObj.data.name || '').toLowerCase();
+                return name.includes(query);
+            });
+            renderUsers(filtered);
+        }
+
+        function updateRoom(id) {
+            let val = document.getElementById(`room-${id}`).value;
+            db.collection("matches").doc(id).update({ roomDetails: val }).then(() => alert("Room Updated!"));
+        }
+
+        function deleteMatch(id) {
+            if(confirm("Delete match?")) db.collection("matches").doc(id).delete();
+        }
+
+        function updateCoins(id) {
+            let amt = Number(document.getElementById(`coin-${id}`).value);
+            db.collection("users").doc(id).get().then(doc => {
+                let cur = doc.exists ? (doc.data().wallet || 0) : 0;
+                db.collection("users").doc(id).update({ wallet: cur + amt }).then(() => alert("Coins Updated!"));
+            });
+        }
+
+        function approveDeposit(dId, userId, amt) {
+            db.collection("users").doc(userId).get().then(doc => {
+                let cur = doc.exists ? (doc.data().wallet || 0) : 0;
+                db.collection("users").doc(userId).update({ wallet: cur + amt }).then(() => {
+                    db.collection("withdrawals_or_deposits").doc(dId).update({ status: "Approved" });
+                    alert("Deposit Approved & Coins Added!");
+                });
+            });
+        }
+
+        function markPaid(id) {
+            db.collection("withdrawals").doc(id).update({ status: "Paid" }).then(() => alert("Marked Paid!"));
+        }
+
+        function deleteDoc(col, id) {
+            if(confirm("Delete this request?")) db.collection(col).doc(id).delete();
+        }
+    </script>
+</body>
+</html>
