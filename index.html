@@ -196,6 +196,8 @@
             max-width: 400px;
             text-align: center;
             box-sizing: border-box;
+            max-height: 80vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -206,12 +208,12 @@
             <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
             <div>
                 <div style="font-size:11px; color:var(--text-gray);">Welcome</div>
-                <div id="topUserName" class="user-greeting">Guest User</div>
+                <div id="topUserName" class="user-greeting">Loading...</div>
             </div>
         </div>
         <div class="header-right">
             <button class="mini-btn" onclick="openSupportModal()">Support</button>
-            <div class="coin-badge">💵 ₹<span id="topUserWallet">0</span></div>
+            <div class="coin-badge">💵 ₹<span id="topUserWallet">...</span></div>
         </div>
     </header>
 
@@ -226,7 +228,7 @@
             <button class="btn btn-gold" onclick="openMonthlyEventModal()">View Monthly Event</button>
         </div>
 
-        <div id="authSection" class="card" style="text-align: center;">
+        <div id="authSection" class="card" style="text-align: center; display:none;">
             <h3>Login to Continue</h3>
             <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
         </div>
@@ -243,10 +245,13 @@
             <button class="btn btn-red" style="margin-top:8px;" onclick="logout()">Logout</button>
         </div>
 
-        <!-- Daily Task Section Integration -->
+        <!-- Daily Task Section Integration with See All -->
         <div class="card" style="border: 1px solid var(--gold); background: #161b22;">
-            <h3 style="color: var(--gold); margin-top: 0;">🎯 Daily Tasks & Earn</h3>
-            <p style="font-size: 13px; color: var(--text-gray);">Complete tasks or download apps to earn instant coins automatically!</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
+                <button class="mini-btn" onclick="openAllTasksModal()">See All</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-gray); margin-top: 5px;">Complete tasks or download apps to earn instant coins automatically!</p>
             <div id="dailyTasksList" style="margin-top: 10px;">
                 <p style="font-size: 13px; color: var(--text-gray);">Loading tasks...</p>
             </div>
@@ -288,6 +293,17 @@
             <button class="mini-btn" onclick="showJoinedMatchesOnly()" style="background:#30363d;">My Joined</button>
         </div>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- All Tasks Modal (See All) -->
+    <div id="allTasksModal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--gold);">All Daily Tasks</h3>
+            <div id="allTasksContainer" style="text-align: left; margin: 10px 0;">
+                <p style="font-size: 13px; color: var(--text-gray);">Loading all tasks...</p>
+            </div>
+            <button class="btn btn-red" onclick="closeAllTasksModal()">Close</button>
+        </div>
     </div>
 
     <div id="monthlyEventModal" class="modal">
@@ -403,6 +419,7 @@
         let currentFilterMode = 'joined';
         let lastActionTime = 0; 
         let timerInterval = null;
+        let globalTasksCache = [];
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -411,7 +428,7 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // --- CACHE LOAD ON STARTUP ---
+        // --- CACHE LOAD ON STARTUP TO PREVENT 0 BALANCE FLICKER ---
         window.addEventListener('DOMContentLoaded', () => {
             let cachedName = localStorage.getItem('cache_topUserName');
             let cachedWallet = localStorage.getItem('cache_topUserWallet');
@@ -419,7 +436,7 @@
             let cachedTasks = localStorage.getItem('cache_dailyTasksList');
 
             if(cachedName) document.getElementById('topUserName').innerText = cachedName;
-            if(cachedWallet) document.getElementById('topUserWallet').innerText = cachedWallet;
+            if(cachedWallet !== null) document.getElementById('topUserWallet').innerText = cachedWallet;
             if(cachedMatches) document.getElementById('matchesList').innerHTML = cachedMatches;
             if(cachedTasks) document.getElementById('dailyTasksList').innerHTML = cachedTasks;
         });
@@ -446,8 +463,6 @@
                 
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
-                localStorage.setItem('cache_topUserName', cachedName);
-                localStorage.setItem('user_name_' + user.uid, cachedName);
 
                 setupUserAccount(user);
                 loadMatches();
@@ -457,8 +472,6 @@
                 document.getElementById('userSection').style.display = 'none';
                 document.getElementById('topUserName').innerText = "Guest User";
                 document.getElementById('topUserWallet').innerText = "0";
-                localStorage.setItem('cache_topUserName', "Guest User");
-                localStorage.setItem('cache_topUserWallet', "0");
                 loadMatches();
                 loadDailyTasks(null);
             }
@@ -468,7 +481,6 @@
             let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
             if (cachedWallet !== null) {
                 document.getElementById('topUserWallet').innerText = cachedWallet;
-                localStorage.setItem('cache_topUserWallet', cachedWallet);
             }
 
             db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -491,64 +503,126 @@
             });
         }
 
-        // Daily Tasks Loader & Tracker Logic with Cache
+        // Daily Tasks Loader & Tracker Logic with See All Integration
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
-                let taskListEl = document.getElementById('dailyTasksList');
-                if (snapshot.empty) {
-                    let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
-                    taskListEl.innerHTML = emptyMsg;
-                    localStorage.setItem('cache_dailyTasksList', emptyMsg);
-                    return;
-                }
-
-                if (!userId) {
-                    let html = "";
-                    snapshot.forEach(doc => {
-                        let task = doc.data();
-                        html += `
-                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
-                                <b style="font-size: 13px; color: #fff;">${task.title}</b>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
-                                <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
-                            </div>
-                        `;
-                    });
-                    taskListEl.innerHTML = html;
-                    localStorage.setItem('cache_dailyTasksList', html);
-                    return;
-                }
-
-                db.collection("task_completions").where("userId", "==", userId).get().then(completionsSnap => {
-                    let completedTasks = {};
-                    completionsSnap.forEach(cDoc => {
-                        completedTasks[cDoc.data().taskId] = true;
-                    });
-
-                    let html = "";
-                    snapshot.forEach(doc => {
-                        let taskId = doc.id;
-                        let task = doc.data();
-                        let isDone = completedTasks[taskId];
-
-                        let actionBtn = isDone 
-                            ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                            : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${taskId}', '${task.link}', ${task.reward})">Start Task</button>`;
-
-                        html += `
-                            <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
-                                <b style="font-size: 13px; color: #fff;">${task.title}</b>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
-                                <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                                ${actionBtn}
-                            </div>
-                        `;
-                    });
-                    taskListEl.innerHTML = html;
-                    localStorage.setItem('cache_dailyTasksList', html);
+                globalTasksCache = [];
+                snapshot.forEach(doc => {
+                    globalTasksCache.push({ id: doc.id, ...doc.data() });
                 });
+
+                renderTasksPreview(userId);
             });
+        }
+
+        function renderTasksPreview(userId) {
+            let taskListEl = document.getElementById('dailyTasksList');
+            if (globalTasksCache.length === 0) {
+                let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
+                taskListEl.innerHTML = emptyMsg;
+                localStorage.setItem('cache_dailyTasksList', emptyMsg);
+                return;
+            }
+
+            if (!userId) {
+                let html = "";
+                // Show only top 2 items in main dashboard preview
+                globalTasksCache.slice(0, 2).forEach(task => {
+                    html += `
+                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <b style="font-size: 13px; color: #fff;">${task.title}</b>
+                            <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
+                            <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
+                        </div>
+                    `;
+                });
+                taskListEl.innerHTML = html;
+                localStorage.setItem('cache_dailyTasksList', html);
+                return;
+            }
+
+            db.collection("task_completions").where("userId", "==", userId).get().then(completionsSnap => {
+                let completedTasks = {};
+                completionsSnap.forEach(cDoc => {
+                    completedTasks[cDoc.data().taskId] = true;
+                });
+
+                let html = "";
+                globalTasksCache.slice(0, 2).forEach(task => {
+                    let isDone = completedTasks[task.id];
+                    let actionBtn = isDone 
+                        ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
+                        : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
+
+                    html += `
+                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <b style="font-size: 13px; color: #fff;">${task.title}</b>
+                            <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
+                            <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                            ${actionBtn}
+                        </div>
+                    `;
+                });
+                taskListEl.innerHTML = html;
+                localStorage.setItem('cache_dailyTasksList', html);
+            });
+        }
+
+        function openAllTasksModal() {
+            document.getElementById('allTasksModal').style.display = 'flex';
+            let container = document.getElementById('allTasksContainer');
+            let user = auth.currentUser;
+
+            if (globalTasksCache.length === 0) {
+                container.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No tasks available.</p>`;
+                return;
+            }
+
+            if (!user) {
+                let html = "";
+                globalTasksCache.forEach(task => {
+                    html += `
+                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <b style="font-size: 13px; color: #fff;">${task.title}</b>
+                            <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || ''}</p>
+                            <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first!')">Start Task</button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+                return;
+            }
+
+            db.collection("task_completions").where("userId", "==", user.uid).get().then(completionsSnap => {
+                let completedTasks = {};
+                completionsSnap.forEach(cDoc => {
+                    completedTasks[cDoc.data().taskId] = true;
+                });
+
+                let html = "";
+                globalTasksCache.forEach(task => {
+                    let isDone = completedTasks[task.id];
+                    let actionBtn = isDone 
+                        ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
+                        : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
+
+                    html += `
+                        <div style="background: #0d1117; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #30363d;">
+                            <b style="font-size: 13px; color: #fff;">${task.title}</b>
+                            <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || ''}</p>
+                            <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
+                            ${actionBtn}
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            });
+        }
+
+        function closeAllTasksModal() {
+            document.getElementById('allTasksModal').style.display = 'none';
         }
 
         function startTask(taskId, taskLink, reward) {
@@ -586,7 +660,6 @@
             document.getElementById('monthlyEventModal').style.display = 'none';
         }
 
-        // Matches Loader with Cache Integration
         function loadMatches() {
             let user = auth.currentUser;
             
@@ -616,7 +689,6 @@
                     snapshot.forEach(doc => {
                         let m = doc.data();
                         let docId = doc.id;
-                        
                         let titleLower = m.title.toLowerCase();
 
                         if (currentFilterMode === 'joined') {
@@ -648,16 +720,8 @@
                         }
 
                         let matchPhoto = m.photoUrl || m.bannerUrl || autoPhoto;
-
                         let isCompleted = m.status === "completed";
-                        let actionButtonHtml = "";
-
-                        if (isCompleted) {
-                            let statusText = m.winnerStatusText || "Completed";
-                            actionButtonHtml = `<button class="btn btn-gray" disabled>Match ${statusText} (Winner: ${m.winnerName || 'None'})</button>`;
-                        } else {
-                            actionButtonHtml = `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
-                        }
+                        let actionButtonHtml = isCompleted ? `<button class="btn btn-gray" disabled>Match Completed</button>` : `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
 
                         html += `
                             <div class="card match-item" data-title="${titleLower}" data-id="${m.matchId.toLowerCase()}">
@@ -669,22 +733,19 @@
                                     <div class="progress-bar" style="width: ${percent}%;"></div>
                                 </div>
                                 <p>Time: <span class="timer">${m.time}</span></p>
-                                
                                 ${actionButtonHtml}
                                 <div id="match-details-${docId}" style="margin-top:8px;"></div>
                             </div>
                         `;
                     });
                     
-                    let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai. Upar diye gaye kisi bhi map par click karke tournaments explore karein!</p>" : "<p>Pehle login karein apne joined matches dekhne ke liye.</p>";
+                    let defaultMsg = user ? "<p>Aapne abhi tak koi match join nahi kiya hai.</p>" : "<p>Pehle login karein.</p>";
                     let finalContent = html || defaultMsg;
                     
                     document.getElementById('matchesList').innerHTML = finalContent;
                     localStorage.setItem('cache_matchesList', finalContent);
                     
-                    if(user) {
-                        checkUserJoins(user.uid);
-                    }
+                    if(user) checkUserJoins(user.uid);
                 });
             });
         }
@@ -701,40 +762,21 @@
                     mSnap.forEach(mDoc => {
                         let docId = mDoc.id;
                         let mData = mDoc.data();
-
                         let actionDiv = document.getElementById(`match-action-${docId}`);
                         let detailsDiv = document.getElementById(`match-details-${docId}`);
 
                         if(joinedMatches[docId]) {
                             let jData = joinedMatches[docId];
-                            
                             if (actionDiv && mData.status !== "completed") {
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
                             }
-                            
                             let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
-                            
-                            if (mData.roomDetails && mData.roomDetails !== 'Pending') {
-                                let notifKey = docId + "_" + mData.roomDetails;
-                                if (!notifiedRooms[notifKey]) {
-                                    notifiedRooms[notifKey] = true;
-                                    alert(`🚨 Room ID & Password Updated for Match: ${mData.title}!\nRoom Details: ${mData.roomDetails}`);
-                                }
-                            }
-
-                            let currentUserName = auth.currentUser ? auth.currentUser.displayName : "User";
-                            if(mData.status === "completed" && mData.winnerName === currentUserName) {
-                                saveWinningRecord(mData.title, mData.prize);
-                            }
-
                             if(detailsDiv) {
-                                let winnerStatus = mData.status === "completed" ? `<p style="margin:2px 0; color:var(--green);"><b>Winner:</b> ${mData.winnerName || 'Not Announced'}</p>` : "";
                                 detailsDiv.innerHTML = `
                                     <div style="background:#1f242d; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
-                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${currentUserName}</p>
+                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser ? auth.currentUser.displayName : "User"}</p>
                                         <p style="margin:2px 0;"><b>FF ID:</b> ${jData.ffId}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
-                                        ${winnerStatus}
                                     </div>
                                 `;
                             }
@@ -744,69 +786,14 @@
             });
         }
 
-        function saveWinningRecord(matchTitle, prizeAmount) {
-            let user = auth.currentUser;
-            if(!user) return;
-            let key = 'user_wins_' + user.uid;
-            let wins = JSON.parse(localStorage.getItem(key)) || [];
-            
-            let alreadyExists = wins.some(w => w.title === matchTitle);
-            if(!alreadyExists) {
-                wins.push({ title: matchTitle, prize: prizeAmount, date: new Date().toLocaleDateString() });
-                localStorage.setItem(key, JSON.stringify(wins));
-            }
-        }
-
         function toggleWinningHistory() {
             let box = document.getElementById('winningHistoryBox');
             box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadWinningHistory();
-        }
-
-        function loadWinningHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-            let key = 'user_wins_' + user.uid;
-            let wins = JSON.parse(localStorage.getItem(key)) || [];
-            
-            let html = "";
-            wins.forEach(w => {
-                html += `
-                    <div style="font-size:13px; margin-bottom:8px;">
-                        <p style="margin:2px 0; color:var(--gold);"><b>Match:</b> ${w.title}</p>
-                        <p style="margin:2px 0; color:var(--green);"><b>Won Prize:</b> ₹${w.prize}</p>
-                        <p style="margin:2px 0; font-size:11px; color:var(--text-gray);">Date: ${w.date}</p>
-                    </div>
-                    <hr style="border-color:#30363d">
-                `;
-            });
-            document.getElementById('winningHistoryList').innerHTML = html || "No winning history found.";
         }
 
         function toggleWithdrawalHistory() {
             let box = document.getElementById('withdrawalHistoryBox');
             box.style.display = box.style.display === 'none' ? 'block' : 'none';
-            loadWithdrawalHistory();
-        }
-
-        function loadWithdrawalHistory() {
-            let user = auth.currentUser;
-            if(!user) return;
-
-            db.collection("withdrawals").where("userId", "==", user.uid).get().then(snapshot => {
-                let html = "";
-                snapshot.forEach(doc => {
-                    let w = doc.data();
-                    html += `
-                        <div style="font-size:13px; margin-bottom:8px;">
-                            <p style="margin:2px 0;"><b>Amount:</b> ₹${w.amount} | <b>UPI:</b> ${w.upi}</p>
-                            <p style="margin:2px 0;"><b>Status:</b> <span style="color:var(--gold);">${w.status}</span></p>
-                        </div>
-                        <hr style="border-color:#30363d">
-                    `;
-                });
-                document.getElementById('withdrawalHistoryList').innerHTML = html || "No recent withdrawal history found.";
-            });
         }
 
         function joinMatch(matchId, entryFee, maxSlots, matchTitle) {
@@ -814,56 +801,28 @@
             if(!user) { alert("Pehle login karein!"); return; }
 
             let currentTime = Date.now();
-            if (currentTime - lastActionTime < 3000) {
-                alert("Please wait a moment before trying again.");
-                return;
-            }
+            if (currentTime - lastActionTime < 3000) return;
             lastActionTime = currentTime;
 
             db.collection("users").doc(user.uid).get().then(userDoc => {
                 let userData = userDoc.data() || {};
-                let hasDeposited = userData.hasDeposited || false;
+                let wallet = userData.wallet || 0;
 
-                if (entryFee === 0 && !hasDeposited) {
-                    alert("Free match join karne ke liye pehle app mein kam se kam ek baar 'Add Money' se deposit karna anivarya hai!");
-                    return;
-                }
+                if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
 
-                db.collection("joins").where("userId", "==", user.uid).where("matchId", "==", matchId).get().then(existingJoin => {
-                    if(!existingJoin.empty) {
-                        alert("Aap is match ko pehle hi join kar chuke hain!");
-                        return;
-                    }
+                let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
+                if(!ffId || ffId.trim().length < 5) { alert("Please enter a valid Free Fire ID!"); return; }
 
-                    db.collection("joins").where("matchId", "==", matchId).get().then(joinsSnap => {
-                        if(joinsSnap.size >= maxSlots) {
-                            alert("Match is Full! Max seat limit reached.");
-                            return;
-                        }
-
-                        let ffId = prompt("Apni Free Fire (FF) ID enter karein:");
-                        if(!ffId || ffId.trim().length < 5) {
-                            alert("Please enter a valid Free Fire ID!");
-                            return;
-                        }
-
-                        let wallet = userData.wallet || 0;
-                        if(wallet < entryFee) { alert("Wallet me balance kam hai! Add Money karein."); return; }
-
-                        let newWallet = wallet - entryFee;
-                        db.collection("users").doc(user.uid).update({ wallet: newWallet }).then(() => {
-                            db.collection("joins").add({
-                                matchId: matchId,
-                                userId: user.uid,
-                                userName: user.displayName,
-                                userEmail: user.email,
-                                ffId: ffId.trim(),
-                                timestamp: Date.now()
-                            }).then(() => {
-                                alert(`Successfully Joined ${matchTitle}!`);
-                                loadMatches();
-                            });
-                        });
+                db.collection("users").doc(user.uid).update({ wallet: wallet - entryFee }).then(() => {
+                    db.collection("joins").add({
+                        matchId: matchId,
+                        userId: user.uid,
+                        userName: user.displayName,
+                        ffId: ffId.trim(),
+                        timestamp: Date.now()
+                    }).then(() => {
+                        alert(`Successfully Joined ${matchTitle}!`);
+                        loadMatches();
                     });
                 });
             });
@@ -872,27 +831,16 @@
         function openSupportModal() { document.getElementById('supportModal').style.display = 'flex'; }
         function closeSupportModal() { document.getElementById('supportModal').style.display = 'none'; }
         function openAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'flex'; }
-        
-        function closeAddMoneyModal() { 
-            document.getElementById('addMoneyModal').style.display = 'none';
-            document.getElementById('qrDisplaySection').style.display = 'none';
-            clearInterval(timerInterval);
-        }
+        function closeAddMoneyModal() { document.getElementById('addMoneyModal').style.display = 'none'; document.getElementById('qrDisplaySection').style.display = 'none'; clearInterval(timerInterval); }
 
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
-            if (!user) {
-                alert("Please login first!");
-                return;
-            }
+            if (!user) { alert("Please login first!"); return; }
 
             let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 150: 0.22, 200: 0.38, 300: 0.45, 500: 0.67, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
             let exactAmtStr = finalAmount.toFixed(2);
             let txnId = "TXN_" + Date.now();
-            let upiId = "9522856794@fam";
-            let payeeName = "Esports RDX";
-            let expiryTime = Date.now() + (4 * 60 * 1000);
 
             try {
                 await db.collection('withdrawals_or_deposits').doc(txnId).set({
@@ -901,36 +849,15 @@
                     requestedAmount: baseAmount,
                     txnId: txnId,
                     status: "Pending",
-                    expiresAt: expiryTime,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                fetch('https://auto-payment-bot-mm7e.onrender.com', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: user.uid,
-                        amount: parseFloat(exactAmtStr),
-                        requestedAmount: baseAmount,
-                        txnId: txnId,
-                        userName: user.displayName || "User",
-                        userEmail: user.email || ""
-                    })
-                }).catch(err => console.log("Render Server Error:", err));
-
-                db.collection('users').doc(user.uid).update({ hasDeposited: true }).catch(err => console.log(err));
-
-                let upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
-                let qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
-
-                document.getElementById('dynamicQRImg').src = qrApiUrl;
+                let upiUrl = `upi://pay?pa=9522856794@fam&pn=EsportsRDX&am=${exactAmtStr}&cu=INR&tr=${txnId}`;
+                document.getElementById('dynamicQRImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
                 document.getElementById('qrExactAmount').innerText = exactAmtStr;
                 document.getElementById('qrDisplaySection').style.display = 'block';
-
                 startTimer(240);
-
             } catch (error) {
-                console.error("Error:", error);
                 alert("Failed to initiate payment request.");
             }
         }
@@ -939,35 +866,23 @@
             clearInterval(timerInterval);
             let timer = duration;
             let timerDisplay = document.getElementById('timer');
-            
             timerInterval = setInterval(() => {
                 let minutes = parseInt(timer / 60, 10);
                 let seconds = parseInt(timer % 60, 10);
                 timerDisplay.innerText = minutes + ":" + (seconds < 10 ? "0" + seconds : seconds);
-                
                 if (--timer < 0) {
                     clearInterval(timerInterval);
-                    timerDisplay.innerText = "Expired";
                     document.getElementById('qrDisplaySection').style.display = 'none';
-                    alert("QR Code expired! Please generate a new one.");
                 }
             }, 1000);
         }
 
-        function openWithdraw() {
-            let user = auth.currentUser;
-            if(!user) { alert("Pehle login karein!"); return; }
-            document.getElementById('withdrawalModal').style.display = 'flex';
-        }
-
-        function closeWithdrawalModal() {
-            document.getElementById('withdrawalModal').style.display = 'none';
-        }
+        function openWithdraw() { document.getElementById('withdrawalModal').style.display = 'flex'; }
+        function closeWithdrawalModal() { document.getElementById('withdrawalModal').style.display = 'none'; }
 
         function submitWithdrawal(amt) {
             let user = auth.currentUser;
             if(!user) return;
-
             let upi = prompt("Apni Withdrawal UPI ID enter karein:");
             if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
 
@@ -975,12 +890,9 @@
                 let wallet = doc.data().wallet || 0;
                 if(wallet < amt) { alert("Insufficient balance!"); return; }
 
-                let newWallet = wallet - amt;
-                db.collection("users").doc(user.uid).update({ wallet: newWallet }).then(() => {
+                db.collection("users").doc(user.uid).update({ wallet: wallet - amt }).then(() => {
                     db.collection("withdrawals").add({
                         userId: user.uid,
-                        userName: user.displayName,
-                        email: user.email,
                         upi: upi.trim(),
                         amount: amt,
                         status: "Pending",
@@ -988,9 +900,6 @@
                     }).then(() => {
                         alert("Withdrawal request submitted successfully!");
                         closeWithdrawalModal();
-                        if(document.getElementById('withdrawalHistoryBox').style.display === 'block') {
-                            loadWithdrawalHistory();
-                        }
                     });
                 });
             });
@@ -998,15 +907,10 @@
 
         function filterMatches() {
             let query = document.getElementById('searchMatch').value.toLowerCase();
-            let items = document.querySelectorAll('.match-item');
-            items.forEach(item => {
+            document.querySelectorAll('.match-item').forEach(item => {
                 let title = item.getAttribute('data-title');
                 let id = item.getAttribute('data-id');
-                if(title.includes(query) || id.includes(query)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
+                item.style.display = (title.includes(query) || id.includes(query)) ? "block" : "none";
             });
         }
 
@@ -1019,7 +923,6 @@
         function showJoinedMatchesOnly() {
             currentFilterMode = 'joined';
             document.getElementById('sectionTitle').innerText = "Joined Matches";
-            document.getElementById('searchMatch').value = '';
             loadMatches();
         }
 
@@ -1032,8 +935,7 @@
 
         function shareOnWhatsApp() {
             let url = document.getElementById("shareAppUrl").value;
-            let message = "Join eSports RDX app for Free Fire tournaments and win real money! Download here: " + url;
-            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(message), "_blank");
+            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Join eSports RDX app: " + url), "_blank");
         }
     </script>
 </body>
