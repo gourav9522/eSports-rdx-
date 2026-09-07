@@ -689,7 +689,8 @@
                         let m = doc.data();
                         let docId = doc.id;
                         let titleLower = (m.title || "").toLowerCase();
-                        let matchIdStr = String(m.matchId || "").toLowerCase();
+                        let customMatchId = m.matchId ? String(m.matchId) : "";
+                        let combinedIdAttr = (customMatchId + " " + docId).toLowerCase();
 
                         if (currentFilterMode === 'joined') {
                             if (!user || !userJoinedMatches[docId]) {
@@ -724,7 +725,7 @@
                         let actionButtonHtml = isCompleted ? `<button class="btn btn-gray" disabled>Match Completed</button>` : `<div id="match-action-${docId}"><button class="btn btn-green" onclick="joinMatch('${docId}', ${m.entryFee}, ${maxSlots}, '${m.title}')">Join Match</button></div>`;
 
                         html += `
-                            <div class="card match-item" data-title="${titleLower}" data-id="${matchIdStr}">
+                            <div class="card match-item" data-title="${titleLower}" data-id="${combinedIdAttr}">
                                 <img src="${matchPhoto}" class="banner-img" style="height:120px;">
                                 <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
                                 <p>${feeDisplay} | Prize: ₹${m.prize}</p>
@@ -906,10 +907,10 @@
         }
 
         function filterMatches() {
-            let query = document.getElementById('searchMatch').value.toLowerCase();
+            let query = document.getElementById('searchMatch').value.toLowerCase().trim();
             document.querySelectorAll('.match-item').forEach(item => {
-                let title = item.getAttribute('data-title');
-                let id = item.getAttribute('data-id');
+                let title = item.getAttribute('data-title') || '';
+                let id = item.getAttribute('data-id') || '';
                 if (title.includes(query) || id.includes(query)) {
                     item.style.display = "block";
                 } else {
