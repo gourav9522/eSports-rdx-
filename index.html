@@ -322,7 +322,7 @@
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
                 🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
+                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa सकते hain.<br><br>
                 
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
                 🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DMing us on Instagram.<br><br>
@@ -689,16 +689,20 @@
                         let m = doc.data();
                         let docId = doc.id;
                         let titleLower = (m.title || "").toLowerCase();
-                        let customMatchId = m.matchId ? String(m.matchId) : "";
+                        let customMatchId = m.matchId ? String(m.matchId).toLowerCase() : "";
                         let combinedIdAttr = (customMatchId + " " + docId).toLowerCase();
 
-                        if (currentFilterMode === 'joined') {
-                            if (!user || !userJoinedMatches[docId]) {
-                                return;
-                            }
-                        } else {
-                            if (!titleLower.includes(currentFilterMode)) {
-                                return;
+                        // Agar user search bar me kuch likh raha hai, toh category filter ko override kar do
+                        let searchQuery = document.getElementById('searchMatch').value.toLowerCase().trim();
+                        if (searchQuery === "") {
+                            if (currentFilterMode === 'joined') {
+                                if (!user || !userJoinedMatches[docId]) {
+                                    return;
+                                }
+                            } else {
+                                if (!titleLower.includes(currentFilterMode)) {
+                                    return;
+                                }
                             }
                         }
 
@@ -727,7 +731,7 @@
                         html += `
                             <div class="card match-item" data-title="${titleLower}" data-id="${combinedIdAttr}">
                                 <img src="${matchPhoto}" class="banner-img" style="height:120px;">
-                                <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId})</h3>
+                                <h3 style="color:var(--gold); margin:5px 0;">${m.title} (ID: ${m.matchId || 'N/A'})</h3>
                                 <p>${feeDisplay} | Prize: ₹${m.prize}</p>
                                 <p>Joined: <b>${filledCount} / ${maxSlots}</b> Slots</p>
                                 <div class="progress-container">
@@ -747,7 +751,33 @@
                     localStorage.setItem('cache_matchesList', finalContent);
                     
                     if(user) checkUserJoins(user.uid);
+                    
+                    // Agar search box me pehle se kuch typed hai toh turant filter apply kar do
+                    if(document.getElementById('searchMatch').value.trim() !== "") {
+                        filterMatches();
+                    }
                 });
+            });
+        }
+
+        function filterMatches() {
+            let query = document.getElementById('searchMatch').value.toLowerCase().trim();
+            
+            // Agar query khali hai toh dobara standard view load kar lo taaki category filter wapas lag jaye
+            if(query === "") {
+                loadMatches();
+                return;
+            }
+
+            let matchItems = document.querySelectorAll('.match-item');
+            matchItems.forEach(item => {
+                let title = item.getAttribute('data-title') || '';
+                let id = item.getAttribute('data-id') || '';
+                if (title.includes(query) || id.includes(query)) {
+                    item.style.display = "block";
+                } else {
+                    item.style.display = "none";
+                }
             });
         }
 
@@ -903,19 +933,6 @@
                         closeWithdrawalModal();
                     });
                 });
-            });
-        }
-
-        function filterMatches() {
-            let query = document.getElementById('searchMatch').value.toLowerCase().trim();
-            document.querySelectorAll('.match-item').forEach(item => {
-                let title = item.getAttribute('data-title') || '';
-                let id = item.getAttribute('data-id') || '';
-                if (title.includes(query) || id.includes(query)) {
-                    item.style.display = "block";
-                } else {
-                    item.style.display = "none";
-                }
             });
         }
 
