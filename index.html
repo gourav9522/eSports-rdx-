@@ -559,20 +559,19 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Net check and safe loading placeholders ("...") to avoid 0 flickering
             if (!navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'flex';
-                document.getElementById('topUserWallet').innerText = "...";
-                document.getElementById('topUserName').innerText = "...";
+                document.getElementById('topUserWallet').innerText = "0";
+                document.getElementById('topUserName').innerText = "Guest";
             } else {
-                let cachedName = localStorage.getItem('cache_topUserName');
-                let cachedWallet = localStorage.getItem('cache_topUserWallet');
-                if (cachedName) document.getElementById('topUserName').innerText = cachedName;
-                if (cachedWallet) document.getElementById('topUserWallet').innerText = cachedWallet;
+                let cachedName = localStorage.getItem('cache_topUserName') || "Guest User";
+                let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
+                document.getElementById('topUserName').innerText = cachedName;
+                document.getElementById('topUserWallet').innerText = cachedWallet;
             }
 
-            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>Loading matches...</p>";
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
+            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No matches found.</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No tasks available.</p>";
             document.getElementById('matchesList').innerHTML = cachedMatches;
             document.getElementById('dailyTasksList').innerHTML = cachedTasks;
         });
@@ -653,9 +652,7 @@
                     }
                 }
             }, error => {
-                if (!navigator.onLine) {
-                    document.getElementById('offlineModal').style.display = 'flex';
-                }
+                console.error(error);
             });
         }
 
@@ -668,7 +665,7 @@
                 });
                 renderTasksPreview(userId);
             }, error => {
-                if (!navigator.onLine) document.getElementById('offlineModal').style.display = 'flex';
+                document.getElementById('dailyTasksList').innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available.</p>`;
             });
         }
 
@@ -720,6 +717,8 @@
                 });
                 taskListEl.innerHTML = html;
                 localStorage.setItem('cache_dailyTasksList', html);
+            }).catch(() => {
+                taskListEl.innerHTML = `<p style="font-size: 13px; color: var(--text-gray);">No tasks available.</p>`;
             });
         }
 
@@ -853,9 +852,11 @@
                     localStorage.setItem('cache_matchesList', finalContent);
                     
                     if(user) checkUserJoins(user.uid);
+                }).catch(() => {
+                    document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>No matches found.</p>";
                 });
             }, error => {
-                if (!navigator.onLine) document.getElementById('offlineModal').style.display = 'flex';
+                document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>No matches found.</p>";
             });
         }
 
@@ -1217,7 +1218,7 @@
         }
 
         function openWithdraw() { document.getElementById('withdrawalModal').style.display = 'flex'; }
-        function closeWithdrawalModal() { document.getElementById('withdrawalModal'].style.display = 'none'; }
+        function closeWithdrawalModal() { document.getElementById('withdrawalModal').style.display = 'none'; }
 
         function submitWithdrawal(amt) {
             let user = auth.currentUser;
@@ -1264,7 +1265,7 @@
         }
 
         function shareOnWhatsApp() {
-            let url = document.getElementById("shareAppUrl">value;
+            let url = document.getElementById("shareAppUrl").value;
             window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Join eSports RDX app: " + url), "_blank");
         }
     </script>
