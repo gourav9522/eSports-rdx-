@@ -368,6 +368,27 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
+    <!-- INTERNET ERROR & RETRY MODAL -->
+    <div id="offlineModal" class="modal" style="z-index: 9999;">
+        <div class="modal-content" style="border-color: var(--red);">
+            <h3 style="color:var(--red); margin-top:0;">⚠️ No Internet Connection</h3>
+            <p style="font-size: 13px; color: var(--text-gray);">Please check your internet connection or mobile data and try again.</p>
+            <button class="btn btn-green" onclick="retryConnection()" style="margin-top:10px;">Retry Now</button>
+        </div>
+    </div>
+
+    <!-- LIVE ROOM ID / PASSWORD POPUP MODAL -->
+    <div id="roomNotificationModal" class="modal" style="z-index: 4000;">
+        <div class="modal-content" style="border-color: var(--green); text-align: center;">
+            <h3 style="color:var(--green); margin-top:0;">🎮 Room Details Available!</h3>
+            <p style="font-size: 13px; color: var(--text-gray);">Admin has updated Room ID & Password for your joined match:</p>
+            <div id="popupRoomContent" style="background: #080c14; padding: 12px; border-radius: 6px; border: 1px solid var(--gold); margin: 12px 0; font-size: 14px; font-weight: bold; color: var(--gold);">
+                Loading...
+            </div>
+            <button class="btn btn-red" onclick="closeRoomNotificationModal()">✕ Close & Play</button>
+        </div>
+    </div>
+
     <!-- PROFILE DASHBOARD MODAL (Triggered by clicking name/avatar on header) -->
     <div id="profileDashboardModal" class="modal">
         <div class="modal-content">
@@ -545,6 +566,7 @@
         let timerInterval = null;
         let globalTasksCache = [];
         let allMatchesCache = [];
+        let notifiedRoomsMap = {};
 
         const mapPhotos = {
             'lone wolf': 'https://archive.org/download/sddefault_20260629/sddefault.jpg',
@@ -553,17 +575,48 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
+        // Load Cached Data immediately on DOM startup so zero is never shown
         window.addEventListener('DOMContentLoaded', () => {
-            let cachedName = localStorage.getItem('cache_topUserName');
-            let cachedWallet = localStorage.getItem('cache_topUserWallet');
-            let cachedMatches = localStorage.getItem('cache_matchesList');
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList');
+            let cachedName = localStorage.getItem('cache_topUserName') || "Gamer";
+            let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
+            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>Loading cached matches...</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
 
-            if(cachedName) document.getElementById('topUserName').innerText = cachedName;
-            if(cachedWallet !== null) document.getElementById('topUserWallet').innerText = cachedWallet;
-            if(cachedMatches) document.getElementById('matchesList').innerHTML = cachedMatches;
-            if(cachedTasks) document.getElementById('dailyTasksList').innerHTML = cachedTasks;
+            document.getElementById('topUserName').innerText = cachedName;
+            document.getElementById('topUserWallet').innerText = cachedWallet;
+            document.getElementById('matchesList').innerHTML = cachedMatches;
+            document.getElementById('dailyTasksList').innerHTML = cachedTasks;
+
+            // Check connection status
+            if (!navigator.onLine) {
+                document.getElementById('offlineModal').style.display = 'flex';
+            }
         });
+
+        window.addEventListener('online', () => {
+            document.getElementById('offlineModal').style.display = 'none';
+            retryConnection();
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('offlineModal').style.display = 'flex';
+        });
+
+        function retryConnection() {
+            if (navigator.onLine) {
+                document.getElementById('offlineModal').style.display = 'none';
+                if (auth.currentUser) {
+                    setupUserAccount(auth.currentUser);
+                    loadMatches();
+                    loadDailyTasks(auth.currentUser.uid);
+                } else {
+                    loadMatches();
+                    loadDailyTasks(null);
+                }
+            } else {
+                alert("Internet is still offline. Please check your connection.");
+            }
+        }
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -572,11 +625,11 @@
 
         function logout() { 
             auth.signOut();
-            localStorage.removeItem('cache_topUserName');
-            localStorage.removeItem('cache_topUserWallet');
+            localStorage.clear();
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('topUserName').innerText = "Guest User";
             document.getElementById('topUserWallet').innerText = "0";
+            document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
         }
 
         auth.onAuthStateChanged(user => {
@@ -598,11 +651,6 @@
         });
 
         function setupUserAccount(user) {
-            let cachedWallet = localStorage.getItem('user_wallet_' + user.uid);
-            if (cachedWallet !== null) {
-                document.getElementById('topUserWallet').innerText = cachedWallet;
-            }
-
             db.collection("users").doc(user.uid).onSnapshot(doc => {
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
@@ -620,6 +668,10 @@
                         localStorage.setItem('cache_topUserName', doc.data().name);
                     }
                 }
+            }, error => {
+                if (!navigator.onLine) {
+                    document.getElementById('offlineModal').style.display = 'flex';
+                }
             });
         }
 
@@ -630,6 +682,8 @@
                     globalTasksCache.push({ id: doc.id, ...doc.data() });
                 });
                 renderTasksPreview(userId);
+            }, error => {
+                if (!navigator.onLine) document.getElementById('offlineModal').style.display = 'flex';
             });
         }
 
@@ -767,7 +821,7 @@
             let user = auth.currentUser;
             db.collection("matches").onSnapshot(snapshot => {
                 if(snapshot.empty) {
-                    let msg = "<p>No active matches found.</p>";
+                    let msg = "<p style='color:var(--text-gray); text-align:center;'>No active matches found.</p>";
                     document.getElementById('matchesList').innerHTML = msg;
                     localStorage.setItem('cache_matchesList', msg);
                     allMatchesCache = [];
@@ -793,7 +847,6 @@
                         let m = doc.data();
                         let docId = doc.id;
                         let titleLower = (m.title || "").toLowerCase();
-                        let customMatchId = m.matchId ? String(m.matchId).toLowerCase() : "";
                         
                         allMatchesCache.push({ docId, title: m.title, matchId: m.matchId, data: m, joinCounts, userJoinedMatches });
 
@@ -814,6 +867,8 @@
                     
                     if(user) checkUserJoins(user.uid);
                 });
+            }, error => {
+                if (!navigator.onLine) document.getElementById('offlineModal').style.display = 'flex';
             });
         }
 
@@ -914,7 +969,15 @@
                             if (actionDiv && mData.status !== "completed") {
                                 actionDiv.innerHTML = `<button class="btn btn-gray" disabled>Joined Successfully</button>`;
                             }
+                            
                             let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
+                            
+                            // Check for Room ID popup notification trigger
+                            if (mData.roomDetails && mData.roomDetails !== 'Pending' && !notifiedRoomsMap[docId]) {
+                                notifiedRoomsMap[docId] = true;
+                                showRoomNotificationPopup(mData.title, mData.roomDetails);
+                            }
+
                             let teamInfoText = jData.teamType ? `(${jData.teamType.toUpperCase()} - Team ID: ${jData.ffId2 ? 'Team A & B' : 'Team A'})` : '';
                             if(detailsDiv) {
                                 detailsDiv.innerHTML = `
@@ -929,6 +992,18 @@
                     });
                 });
             });
+        }
+
+        function showRoomNotificationPopup(matchTitle, roomDetails) {
+            document.getElementById('popupRoomContent').innerHTML = `
+                <p style="margin:0 0 4px 0; color:#fff;">🏆 ${matchTitle}</p>
+                <span style="color:var(--green); font-size:15px; word-break:break-all;">${roomDetails}</span>
+            `;
+            document.getElementById('roomNotificationModal').style.display = 'flex';
+        }
+
+        function closeRoomNotificationModal() {
+            document.getElementById('roomNotificationModal').style.display = 'none';
         }
 
         /* DUO/SQUAD DUAL TEAM JOIN MODAL SYSTEM */
@@ -946,11 +1021,9 @@
             activeJoinTitle = matchTitle;
             activeMatchType = (matchType || "solo").toLowerCase();
 
-            // Check if Duo or Squad allows 2 teams selection (Team A and Team B)
             if (activeMatchType.includes('duo') || activeMatchType.includes('squad') || activeMatchType.includes('custom') || activeMatchType === 'a_b') {
                 showTeamSelectionModal();
             } else {
-                // Solo join direct
                 joinMatchDirect(activeJoinMatchId, activeJoinFee, activeJoinTitle, 'solo', prompt("Apni Free Fire (FF) ID enter karein:"), "");
             }
         }
@@ -967,7 +1040,7 @@
                             <label style="font-size:11px; color:var(--text-gray); display:block; text-align:left;">Player 1 FF ID (Required):</label>
                             <input type="text" id="teamA_p1" placeholder="Enter Player 1 FF ID" style="margin:4px 0 8px 0;">
                             
-                            <label style="font-size:11px; color:var(--text-gray); display:block; text-align:left;">Player 2 FF ID (Optional - Daanv 2x fee kategi):</label>
+                            <label style="font-size:11px; color:var(--text-gray); display:block; text-align:left;">Player 2 FF ID (Optional):</label>
                             <input type="text" id="teamA_p2" placeholder="Enter Player 2 FF ID (Optional)" style="margin:4px 0 4px 0;">
                         </div>
 
@@ -1010,7 +1083,6 @@
                     if (b1 !== "") { totalPlayersCount++; primaryFFId = b1; }
                     if (b2 !== "") { totalPlayersCount++; secondaryFFId = b2; }
                 } else {
-                    // Both teams populated or multi
                     if (b1 !== "") secondaryFFId = secondaryFFId ? secondaryFFId + ", " + b1 : b1;
                     if (b2 !== "") secondaryFFId = secondaryFFId ? secondaryFFId + ", " + b2 : b2;
                     totalPlayersCount += (b1 !== "" ? 1 : 0) + (b2 !== "" ? 1 : 0);
@@ -1074,7 +1146,7 @@
             if(!user) { listEl.innerHTML = "Pehle login karein!"; return; }
 
             db.collection("winnings").where("userId", "==", user.uid).get().then(snap => {
-                if(snap.empty) { listel_html = "Koi winning record nahi mila."; listEl.innerHTML = listel_html; return; }
+                if(snap.empty) { listEl.innerHTML = "Koi winning record nahi mila."; return; }
                 let html = "";
                 snap.forEach(doc => {
                     let d = doc.data();
@@ -1085,9 +1157,8 @@
                     </div>`;
                 });
                 listEl.innerHTML = html;
-            }).catch(() => { listEl.innerHTML = "Error loading winnings."; });
+            });
         }
-        function closeWinningHistoryModel_fn() { document.getElementById('winningHistoryModal').style.display = 'none'; }
         function closeWinningHistoryModal() { document.getElementById('winningHistoryModal').style.display = 'none'; }
 
         function toggleWithdrawalHistoryModal() {
@@ -1109,7 +1180,7 @@
                     </div>`;
                 });
                 listEl.innerHTML = html;
-            }).catch(() => { listEl.innerHTML = "Error loading withdrawals."; });
+            });
         }
         function closeWithdrawalHistoryModal() { document.getElementById('withdrawalHistoryModal').style.display = 'none'; }
 
