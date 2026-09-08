@@ -575,23 +575,27 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // Load Cached Data immediately on DOM startup so zero is never shown
+        // App Load par turant LocalStorage se data load karein taaki zero ya blank na dikhe
         window.addEventListener('DOMContentLoaded', () => {
-            let cachedName = localStorage.getItem('cache_topUserName') || "Gamer";
-            let cachedWallet = localStorage.getItem('cache_topUserWallet') || "...";
-            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>Loading cached matches...</p>";
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
+            applyCachedDataToUI();
+
+            if (!navigator.onLine) {
+                document.getElementById('offlineModal').style.display = 'flex';
+            }
+        });
+
+        function applyCachedDataToUI() {
+            let user = auth.currentUser;
+            let cachedName = localStorage.getItem('cache_topUserName') || (user ? user.displayName : "Gamer");
+            let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
+            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No offline matches found.</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No offline tasks found.</p>";
 
             document.getElementById('topUserName').innerText = cachedName;
             document.getElementById('topUserWallet').innerText = cachedWallet;
             document.getElementById('matchesList').innerHTML = cachedMatches;
             document.getElementById('dailyTasksList').innerHTML = cachedTasks;
-
-            // Check connection status
-            if (!navigator.onLine) {
-                document.getElementById('offlineModal').style.display = 'flex';
-            }
-        });
+        }
 
         window.addEventListener('online', () => {
             document.getElementById('offlineModal').style.display = 'none';
@@ -628,7 +632,7 @@
             localStorage.clear();
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('topUserName').innerText = "Guest User";
-            document.getElementById('topUserWallet').innerText = "...";
+            document.getElementById('topUserWallet').innerText = "0";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
         }
 
@@ -638,13 +642,16 @@
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
 
+                // Agar Net on hai toh turant Cached wallet show karke background me fresh data fetch karein
+                applyCachedDataToUI();
+
                 setupUserAccount(user);
                 loadMatches();
                 loadDailyTasks(user.uid);
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('topUserName').innerText = "Guest User";
-                document.getElementById('topUserWallet').innerText = "...";
+                document.getElementById('topUserWallet').innerText = "0";
                 loadMatches();
                 loadDailyTasks(null);
             }
@@ -652,13 +659,9 @@
 
         function setupUserAccount(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
-                // यदि इंटरनेट नहीं है या स्नैपशॉट वैलिड डेटा नहीं दे रहा, तो पुराना लोकल डेटा ही रहने दें (जीरो न करें)
-                if (!navigator.onLine || !doc.exists) {
-                    return; 
-                }
+                if (!navigator.onLine || !doc.exists) return;
                 
                 let data = doc.data();
-                // यदि डेटाबेस में वॉलेट फील्ड मौजूद है तभी अपडेट करें
                 if (data && data.wallet !== undefined && data.wallet !== null) {
                     let walletVal = data.wallet;
                     document.getElementById('topUserWallet').innerText = walletVal;
@@ -672,7 +675,6 @@
                     localStorage.setItem('cache_topUserName', data.name);
                 }
             }, error => {
-                // एरर आने पर चुपचाप इग्नोर करें ताकि पुराना Cached बैलेंस स्क्रीन पर बना रहे
                 if (!navigator.onLine) {
                     document.getElementById('offlineModal').style.display = 'flex';
                 }
@@ -735,6 +737,8 @@
                 });
                 taskListEl.innerHTML = html;
                 localStorage.setItem('cache_dailyTasksList', html);
+            }).catch(e => {
+                // Offline fallback handled by UI caching
             });
         }
 
@@ -983,6 +987,8 @@
                         }
                     });
                 });
+            }).catch(e => {
+                // Offline fallback
             });
         }
 
