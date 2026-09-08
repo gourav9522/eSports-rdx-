@@ -28,7 +28,6 @@
             min-height: 100vh;
         }
         
-        /* Modern Glowing Header */
         header {
             background: rgba(11, 16, 26, 0.95);
             backdrop-filter: blur(10px);
@@ -98,7 +97,6 @@
 
         .container { padding: 16px; max-width: 600px; margin: auto; }
         
-        /* Sci-Fi Cards */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -179,7 +177,6 @@
         .flex { display: flex; gap: 10px; }
         .timer { color: var(--red); font-weight: bold; font-size: 14px; text-shadow: 0 0 8px rgba(255, 51, 68, 0.4); }
         
-        /* Category Maps Grid */
         .maps-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -226,7 +223,6 @@
             box-shadow: 0 0 8px var(--green-glow);
         }
 
-        /* Modal Overlay & Popup Styles */
         .modal {
             display: none;
             position: fixed;
@@ -259,7 +255,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Search Popup Window */
         #searchPopupOverlay {
             display: none;
             position: fixed;
@@ -283,7 +278,6 @@
             overflow-y: auto;
         }
 
-        /* Team Registration Box styling */
         .team-box {
             background: #151d30;
             border: 1px dashed var(--gold);
@@ -307,7 +301,9 @@
         </div>
         <div class="header-right">
             <button class="mini-btn" onclick="openSupportModal()">Support</button>
-            <div class="coin-badge">💵 ₹<span id="topUserWallet">...</span></div>
+            <!-- Yaha wallet badge ko id de di hai taaki internet off hone par yeh hide/change ho sake -->
+            <div id="walletBadgeContainer" class="coin-badge" style="display:none;">💵 ₹<span id="topUserWallet">0</span></div>
+            <div id="walletOfflineBadge" class="coin-badge" style="border-color:var(--red); color:var(--red); display:flex;">⚠️ Offline</div>
         </div>
     </header>
 
@@ -327,7 +323,6 @@
             <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
         </div>
 
-        <!-- Daily Task Section Integration with See All -->
         <div class="card" style="border: 1px solid rgba(243, 183, 30, 0.4); background: #111622;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
@@ -339,7 +334,6 @@
             </div>
         </div>
 
-        <!-- Green Search Bar triggering Popup Search -->
         <input type="text" id="searchMatchTrigger" placeholder="🔍 Search Match by Title or ID..." onclick="openSearchPopup()" readonly style="border: 2px solid var(--green); background: rgba(0, 255, 102, 0.03); cursor: pointer; text-align: center; font-weight: bold; color: var(--green);">
 
         <div class="maps-grid">
@@ -368,7 +362,6 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
-    <!-- INTERNET ERROR & RETRY MODAL -->
     <div id="offlineModal" class="modal" style="z-index: 9999;">
         <div class="modal-content" style="border-color: var(--red);">
             <h3 style="color:var(--red); margin-top:0;">⚠️ No Internet Connection</h3>
@@ -377,7 +370,6 @@
         </div>
     </div>
 
-    <!-- LIVE ROOM ID / PASSWORD POPUP MODAL -->
     <div id="roomNotificationModal" class="modal" style="z-index: 4000;">
         <div class="modal-content" style="border-color: var(--green); text-align: center;">
             <h3 style="color:var(--green); margin-top:0;">🎮 Room Details Available!</h3>
@@ -389,7 +381,6 @@
         </div>
     </div>
 
-    <!-- PROFILE DASHBOARD MODAL (Triggered by clicking name/avatar on header) -->
     <div id="profileDashboardModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold); margin-top:0;">👤 Account & Wallet Hub</h3>
@@ -409,7 +400,6 @@
         </div>
     </div>
 
-    <!-- WINNING HISTORY MODAL -->
     <div id="winningHistoryModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">🏆 My Winning History</h3>
@@ -418,7 +408,6 @@
         </div>
     </div>
 
-    <!-- WITHDRAWAL HISTORY MODAL -->
     <div id="withdrawalHistoryModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">📜 Withdrawal History</h3>
@@ -427,7 +416,6 @@
         </div>
     </div>
 
-    <!-- POPUP SEARCH OVERLAY WINDOW -->
     <div id="searchPopupOverlay">
         <div class="search-popup-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -441,7 +429,6 @@
         </div>
     </div>
 
-    <!-- All Tasks Modal (See All) -->
     <div id="allTasksModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">All Daily Tasks</h3>
@@ -484,7 +471,6 @@
         </div>
     </div>
 
-    <!-- Add Money Modal -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
@@ -516,7 +502,6 @@
         </div>
     </div>
 
-    <!-- Withdrawal Modal -->
     <div id="withdrawalModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Withdrawal Request</h3>
@@ -575,8 +560,9 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // App Load par turant LocalStorage se data load karein taaki zero ya blank na dikhe
+        // App Load par check karein agar internet nahi hai toh wallet gayab karke offline badge dikhayein
         window.addEventListener('DOMContentLoaded', () => {
+            updateNetworkWalletState();
             applyCachedDataToUI();
 
             if (!navigator.onLine) {
@@ -584,31 +570,47 @@
             }
         });
 
-        function applyCachedDataToUI() {
-            let user = auth.currentUser;
-            let cachedName = localStorage.getItem('cache_topUserName') || (user ? user.displayName : "Gamer");
-            let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
-            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No offline matches found.</p>";
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No offline tasks found.</p>";
-
-            document.getElementById('topUserName').innerText = cachedName;
-            document.getElementById('topUserWallet').innerText = cachedWallet;
-            document.getElementById('matchesList').innerHTML = cachedMatches;
-            document.getElementById('dailyTasksList').innerHTML = cachedTasks;
-        }
-
+        // Internet connection badalte hi wallet state update hogi
         window.addEventListener('online', () => {
             document.getElementById('offlineModal').style.display = 'none';
+            updateNetworkWalletState();
             retryConnection();
         });
 
         window.addEventListener('offline', () => {
             document.getElementById('offlineModal').style.display = 'flex';
+            updateNetworkWalletState();
         });
+
+        // Yeh function internet ke hone par hi wallet dikhayega, offline hone par wallet gayab karke offline status dikhayega
+        function updateNetworkWalletState() {
+            let walletBadge = document.getElementById('walletBadgeContainer');
+            let offlineBadge = document.getElementById('walletOfflineBadge');
+
+            if (navigator.onLine) {
+                walletBadge.style.display = 'flex';
+                offlineBadge.style.display = 'none';
+            } else {
+                walletBadge.style.display = 'none';
+                offlineBadge.style.display = 'flex';
+            }
+        }
+
+        function applyCachedDataToUI() {
+            let user = auth.currentUser;
+            let cachedName = localStorage.getItem('cache_topUserName') || (user ? user.displayName : "Gamer");
+            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No offline matches found.</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No offline tasks found.</p>";
+
+            document.getElementById('topUserName').innerText = cachedName;
+            document.getElementById('matchesList').innerHTML = cachedMatches;
+            document.getElementById('dailyTasksList').innerHTML = cachedTasks;
+        }
 
         function retryConnection() {
             if (navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'none';
+                updateNetworkWalletState();
                 if (auth.currentUser) {
                     setupUserAccount(auth.currentUser);
                     loadMatches();
@@ -632,7 +634,6 @@
             localStorage.clear();
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('topUserName').innerText = "Guest User";
-            document.getElementById('topUserWallet').innerText = "0";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
         }
 
@@ -642,16 +643,13 @@
                 let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
                 document.getElementById('topUserName').innerText = cachedName;
 
-                // Agar Net on hai toh turant Cached wallet show karke background me fresh data fetch karein
                 applyCachedDataToUI();
-
                 setupUserAccount(user);
                 loadMatches();
                 loadDailyTasks(user.uid);
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('topUserName').innerText = "Guest User";
-                document.getElementById('topUserWallet').innerText = "0";
                 loadMatches();
                 loadDailyTasks(null);
             }
@@ -737,9 +735,7 @@
                 });
                 taskListEl.innerHTML = html;
                 localStorage.setItem('cache_dailyTasksList', html);
-            }).catch(e => {
-                // Offline fallback handled by UI caching
-            });
+            }).catch(e => {});
         }
 
         function openAllTasksModal() {
@@ -904,7 +900,6 @@
             `;
         }
 
-        /* POPUP SEARCH FUNCTIONS */
         function openSearchPopup() {
             document.getElementById('searchPopupOverlay').style.display = 'flex';
             document.getElementById('popupSearchInput').focus();
@@ -987,9 +982,7 @@
                         }
                     });
                 });
-            }).catch(e => {
-                // Offline fallback
-            });
+            }).catch(e => {});
         }
 
         function showRoomNotificationPopup(matchTitle, roomDetails) {
@@ -1004,7 +997,6 @@
             document.getElementById('roomNotificationModal').style.display = 'none';
         }
 
-        /* DUO/SQUAD DUAL TEAM JOIN MODAL SYSTEM */
         let activeJoinMatchId = null;
         let activeJoinFee = 0;
         let activeJoinTitle = "";
@@ -1133,7 +1125,6 @@
             });
         }
 
-        /* PROFILE & HISTORY MODALS CONTROL */
         function openProfileDashboardModal() { document.getElementById('profileDashboardModal').style.display = 'flex'; }
         function closeProfileDashboardModal() { document.getElementById('profileDashboardModal').style.display = 'none'; }
 
