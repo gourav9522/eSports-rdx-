@@ -652,26 +652,27 @@
 
         function setupUserAccount(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
-                if (!navigator.onLine) {
-                    return; // Don't process offline snapshots if offline event handles it
+                // यदि इंटरनेट नहीं है या स्नैपशॉट वैलिड डेटा नहीं दे रहा, तो पुराना लोकल डेटा ही रहने दें (जीरो न करें)
+                if (!navigator.onLine || !doc.exists) {
+                    return; 
                 }
-                if (!doc.exists) {
-                    db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
-                    document.getElementById('topUserWallet').innerText = "0";
-                    localStorage.setItem('user_wallet_' + user.uid, "0");
-                    localStorage.setItem('cache_topUserWallet', "0");
-                } else {
-                    let walletVal = doc.data().wallet !== undefined ? doc.data().wallet : 0;
+                
+                let data = doc.data();
+                // यदि डेटाबेस में वॉलेट फील्ड मौजूद है तभी अपडेट करें
+                if (data && data.wallet !== undefined && data.wallet !== null) {
+                    let walletVal = data.wallet;
                     document.getElementById('topUserWallet').innerText = walletVal;
                     localStorage.setItem('user_wallet_' + user.uid, walletVal);
                     localStorage.setItem('cache_topUserWallet', walletVal);
-                    if(doc.data().name) {
-                        localStorage.setItem('user_name_' + user.uid, doc.data().name);
-                        document.getElementById('topUserName').innerText = doc.data().name;
-                        localStorage.setItem('cache_topUserName', doc.data().name);
-                    }
+                }
+
+                if(data && data.name) {
+                    localStorage.setItem('user_name_' + user.uid, data.name);
+                    document.getElementById('topUserName').innerText = data.name;
+                    localStorage.setItem('cache_topUserName', data.name);
                 }
             }, error => {
+                // एरर आने पर चुपचाप इग्नोर करें ताकि पुराना Cached बैलेंस स्क्रीन पर बना रहे
                 if (!navigator.onLine) {
                     document.getElementById('offlineModal').style.display = 'flex';
                 }
@@ -680,7 +681,7 @@
 
         function loadDailyTasks(userId) {
             db.collection("tasks").onSnapshot(snapshot => {
-                if (!navigator.onLine) return;
+                if (!navigator.onLine || snapshot.empty) return;
                 globalTasksCache = [];
                 snapshot.forEach(doc => {
                     globalTasksCache.push({ id: doc.id, ...doc.data() });
@@ -693,12 +694,7 @@
 
         function renderTasksPreview(userId) {
             let taskListEl = document.getElementById('dailyTasksList');
-            if (globalTasksCache.length === 0) {
-                let emptyMsg = `<p style="font-size: 13px; color: var(--text-gray);">No active tasks available right now.</p>`;
-                taskListEl.innerHTML = emptyMsg;
-                localStorage.setItem('cache_dailyTasksList', emptyMsg);
-                return;
-            }
+            if (globalTasksCache.length === 0) return;
 
             if (!userId) {
                 let html = "";
@@ -803,12 +799,10 @@
         }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
-            if(!navigator.onLine) return;
-            if(doc.exists) {
-                let data = doc.data();
-                if(data.bannerUrl) document.getElementById('dynamicBanner').src = data.bannerUrl;
-                if(data.monthlyVideoUrl) monthlyVideoUrlGlobal = data.monthlyVideoUrl;
-            }
+            if(!navigator.onLine || !doc.exists) return;
+            let data = doc.data();
+            if(data.bannerUrl) document.getElementById('dynamicBanner').src = data.bannerUrl;
+            if(data.monthlyVideoUrl) monthlyVideoUrlGlobal = data.monthlyVideoUrl;
         });
 
         function openMonthlyEventModal() {
@@ -825,14 +819,7 @@
         function loadMatches() {
             let user = auth.currentUser;
             db.collection("matches").onSnapshot(snapshot => {
-                if(!navigator.onLine) return;
-                if(snapshot.empty) {
-                    let msg = "<p style='color:var(--text-gray); text-align:center;'>No active matches found.</p>";
-                    document.getElementById('matchesList').innerHTML = msg;
-                    localStorage.setItem('cache_matchesList', msg);
-                    allMatchesCache = [];
-                    return;
-                }
+                if(!navigator.onLine || snapshot.empty) return;
 
                 db.collection("joins").get().then(joinsSnap => {
                     let joinCounts = {};
