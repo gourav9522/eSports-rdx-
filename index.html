@@ -28,7 +28,6 @@
             min-height: 100vh;
         }
         
-        /* Modern Glowing Header */
         header {
             background: rgba(11, 16, 26, 0.95);
             backdrop-filter: blur(10px);
@@ -98,7 +97,6 @@
 
         .container { padding: 16px; max-width: 600px; margin: auto; }
         
-        /* Sci-Fi Cards */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -179,7 +177,6 @@
         .flex { display: flex; gap: 10px; }
         .timer { color: var(--red); font-weight: bold; font-size: 14px; text-shadow: 0 0 8px rgba(255, 51, 68, 0.4); }
         
-        /* Category Maps Grid */
         .maps-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -226,7 +223,6 @@
             box-shadow: 0 0 8px var(--green-glow);
         }
 
-        /* Modal Overlay & Popup Styles */
         .modal {
             display: none;
             position: fixed;
@@ -259,7 +255,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Search Popup Window */
         #searchPopupOverlay {
             display: none;
             position: fixed;
@@ -283,7 +278,6 @@
             overflow-y: auto;
         }
 
-        /* Team Registration Box styling */
         .team-box {
             background: #151d30;
             border: 1px dashed var(--gold);
@@ -302,12 +296,12 @@
             <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
             <div>
                 <div style="font-size:10px; color:var(--text-gray); text-transform:uppercase;">Profile Panel</div>
-                <div id="topUserName" class="user-greeting">Loading...</div>
+                <div id="topUserName" class="user-greeting">...</div>
             </div>
         </div>
         <div class="header-right">
             <button class="mini-btn" onclick="openSupportModal()">Support</button>
-            <div class="coin-badge">💵 ₹<span id="topUserWallet">0</span></div>
+            <div class="coin-badge">💵 ₹<span id="topUserWallet">...</span></div>
         </div>
     </header>
 
@@ -327,7 +321,6 @@
             <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
         </div>
 
-        <!-- Daily Task Section Integration with See All -->
         <div class="card" style="border: 1px solid rgba(243, 183, 30, 0.4); background: #111622;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
@@ -339,7 +332,6 @@
             </div>
         </div>
 
-        <!-- Green Search Bar triggering Popup Search -->
         <input type="text" id="searchMatchTrigger" placeholder="🔍 Search Match by Title or ID..." onclick="openSearchPopup()" readonly style="border: 2px solid var(--green); background: rgba(0, 255, 102, 0.03); cursor: pointer; text-align: center; font-weight: bold; color: var(--green);">
 
         <div class="maps-grid">
@@ -368,7 +360,6 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
-    <!-- INTERNET ERROR & RETRY MODAL -->
     <div id="offlineModal" class="modal" style="z-index: 9999;">
         <div class="modal-content" style="border-color: var(--red);">
             <h3 style="color:var(--red); margin-top:0;">⚠️ No Internet Connection</h3>
@@ -377,7 +368,6 @@
         </div>
     </div>
 
-    <!-- LIVE ROOM ID / PASSWORD POPUP MODAL -->
     <div id="roomNotificationModal" class="modal" style="z-index: 4000;">
         <div class="modal-content" style="border-color: var(--green); text-align: center;">
             <h3 style="color:var(--green); margin-top:0;">🎮 Room Details Available!</h3>
@@ -389,7 +379,6 @@
         </div>
     </div>
 
-    <!-- PROFILE DASHBOARD MODAL (Triggered by clicking name/avatar on header) -->
     <div id="profileDashboardModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold); margin-top:0;">👤 Account & Wallet Hub</h3>
@@ -409,7 +398,6 @@
         </div>
     </div>
 
-    <!-- WINNING HISTORY MODAL -->
     <div id="winningHistoryModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">🏆 My Winning History</h3>
@@ -418,7 +406,6 @@
         </div>
     </div>
 
-    <!-- WITHDRAWAL HISTORY MODAL -->
     <div id="withdrawalHistoryModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">📜 Withdrawal History</h3>
@@ -427,7 +414,6 @@
         </div>
     </div>
 
-    <!-- POPUP SEARCH OVERLAY WINDOW -->
     <div id="searchPopupOverlay">
         <div class="search-popup-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -441,7 +427,6 @@
         </div>
     </div>
 
-    <!-- All Tasks Modal (See All) -->
     <div id="allTasksModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">All Daily Tasks</h3>
@@ -484,7 +469,6 @@
         </div>
     </div>
 
-    <!-- Add Money Modal -->
     <div id="addMoneyModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Add Money (Instant Auto)</h3>
@@ -516,7 +500,6 @@
         </div>
     </div>
 
-    <!-- Withdrawal Modal -->
     <div id="withdrawalModal" class="modal">
         <div class="modal-content">
             <h3 style="color:var(--gold);">Withdrawal Request</h3>
@@ -575,22 +558,23 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // Load Cached Data immediately on DOM startup so zero is never shown
         window.addEventListener('DOMContentLoaded', () => {
-            let cachedName = localStorage.getItem('cache_topUserName') || "Gamer";
-            let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
-            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>Loading cached matches...</p>";
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
-
-            document.getElementById('topUserName').innerText = cachedName;
-            document.getElementById('topUserWallet').innerText = cachedWallet;
-            document.getElementById('matchesList').innerHTML = cachedMatches;
-            document.getElementById('dailyTasksList').innerHTML = cachedTasks;
-
-            // Check connection status
+            // Net check and safe loading placeholders ("...") to avoid 0 flickering
             if (!navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'flex';
+                document.getElementById('topUserWallet').innerText = "...";
+                document.getElementById('topUserName').innerText = "...";
+            } else {
+                let cachedName = localStorage.getItem('cache_topUserName');
+                let cachedWallet = localStorage.getItem('cache_topUserWallet');
+                if (cachedName) document.getElementById('topUserName').innerText = cachedName;
+                if (cachedWallet) document.getElementById('topUserWallet').innerText = cachedWallet;
             }
+
+            let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>Loading matches...</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
+            document.getElementById('matchesList').innerHTML = cachedMatches;
+            document.getElementById('dailyTasksList').innerHTML = cachedTasks;
         });
 
         window.addEventListener('online', () => {
@@ -652,13 +636,10 @@
 
         function setupUserAccount(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
-                if (!navigator.onLine) {
-                    return; // Don't process offline snapshots if offline event handles it
-                }
+                if (!navigator.onLine) return;
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
                     document.getElementById('topUserWallet').innerText = "0";
-                    localStorage.setItem('user_wallet_' + user.uid, "0");
                     localStorage.setItem('cache_topUserWallet', "0");
                 } else {
                     let walletVal = doc.data().wallet !== undefined ? doc.data().wallet : 0;
@@ -913,7 +894,6 @@
             `;
         }
 
-        /* POPUP SEARCH FUNCTIONS */
         function openSearchPopup() {
             document.getElementById('searchPopupOverlay').style.display = 'flex';
             document.getElementById('popupSearchInput').focus();
@@ -1011,7 +991,6 @@
             document.getElementById('roomNotificationModal').style.display = 'none';
         }
 
-        /* DUO/SQUAD DUAL TEAM JOIN MODAL SYSTEM */
         let activeJoinMatchId = null;
         let activeJoinFee = 0;
         let activeJoinTitle = "";
@@ -1140,7 +1119,6 @@
             });
         }
 
-        /* PROFILE & HISTORY MODALS CONTROL */
         function openProfileDashboardModal() { document.getElementById('profileDashboardModal').style.display = 'flex'; }
         function closeProfileDashboardModal() { document.getElementById('profileDashboardModal').style.display = 'none'; }
 
@@ -1239,7 +1217,7 @@
         }
 
         function openWithdraw() { document.getElementById('withdrawalModal').style.display = 'flex'; }
-        function closeWithdrawalModal() { document.getElementById('withdrawalModal').style.display = 'none'; }
+        function closeWithdrawalModal() { document.getElementById('withdrawalModal'].style.display = 'none'; }
 
         function submitWithdrawal(amt) {
             let user = auth.currentUser;
@@ -1286,7 +1264,7 @@
         }
 
         function shareOnWhatsApp() {
-            let url = document.getElementById("shareAppUrl").value;
+            let url = document.getElementById("shareAppUrl">value;
             window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent("Join eSports RDX app: " + url), "_blank");
         }
     </script>
