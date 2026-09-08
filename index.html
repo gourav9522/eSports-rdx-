@@ -561,17 +561,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             if (!navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'flex';
-                document.getElementById('topUserWallet').innerText = "0";
-                document.getElementById('topUserName').innerText = "Guest";
-            } else {
-                let cachedName = localStorage.getItem('cache_topUserName') || "Guest User";
-                let cachedWallet = localStorage.getItem('cache_topUserWallet') || "0";
-                document.getElementById('topUserName').innerText = cachedName;
-                document.getElementById('topUserWallet').innerText = cachedWallet;
             }
+            // Shuru me wallet aur username ko strictly '...' rakha hai jab tak firebase se data na aaye
+            document.getElementById('topUserWallet').innerText = "...";
+            document.getElementById('topUserName').innerText = "...";
 
             let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No matches found.</p>";
-            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No tasks available.</p>";
+            let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>Loading tasks...</p>";
             document.getElementById('matchesList').innerHTML = cachedMatches;
             document.getElementById('dailyTasksList').innerHTML = cachedTasks;
         });
@@ -610,23 +606,22 @@
             auth.signOut();
             localStorage.clear();
             document.getElementById('authSection').style.display = 'block';
-            document.getElementById('topUserName').innerText = "Guest User";
-            document.getElementById('topUserWallet').innerText = "0";
+            document.getElementById('topUserName').innerText = "...";
+            document.getElementById('topUserWallet').innerText = "...";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
         }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authSection').style.display = 'none';
-                let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
-                document.getElementById('topUserName').innerText = cachedName;
+                document.getElementById('topUserName').innerText = user.displayName || "User";
 
                 setupUserAccount(user);
                 loadMatches();
                 loadDailyTasks(user.uid);
             } else {
                 document.getElementById('authSection').style.display = 'block';
-                document.getElementById('topUserName').innerText = "Guest User";
+                document.getElementById('topUserName').innerText = "Guest";
                 document.getElementById('topUserWallet').innerText = "0";
                 loadMatches();
                 loadDailyTasks(null);
@@ -639,16 +634,11 @@
                 if (!doc.exists) {
                     db.collection("users").doc(user.uid).set({ wallet: 0, email: user.email, name: user.displayName, hasDeposited: false });
                     document.getElementById('topUserWallet').innerText = "0";
-                    localStorage.setItem('cache_topUserWallet', "0");
                 } else {
                     let walletVal = doc.data().wallet !== undefined ? doc.data().wallet : 0;
                     document.getElementById('topUserWallet').innerText = walletVal;
-                    localStorage.setItem('user_wallet_' + user.uid, walletVal);
-                    localStorage.setItem('cache_topUserWallet', walletVal);
                     if(doc.data().name) {
-                        localStorage.setItem('user_name_' + user.uid, doc.data().name);
                         document.getElementById('topUserName').innerText = doc.data().name;
-                        localStorage.setItem('cache_topUserName', doc.data().name);
                     }
                 }
             }, error => {
