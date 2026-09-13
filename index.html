@@ -301,7 +301,6 @@
         </div>
         <div class="header-right">
             <button class="mini-btn" onclick="openSupportModal()">Support</button>
-            <!-- Yaha wallet badge ko id de di hai taaki internet off hone par yeh hide/change ho sake -->
             <div id="walletBadgeContainer" class="coin-badge" style="display:none;">💵 ₹<span id="topUserWallet">0</span></div>
             <div id="walletOfflineBadge" class="coin-badge" style="border-color:var(--red); color:var(--red); display:flex;">⚠️ Offline</div>
         </div>
@@ -560,7 +559,6 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        // App Load par check karein agar internet nahi hai toh wallet gayab karke offline badge dikhayein
         window.addEventListener('DOMContentLoaded', () => {
             updateNetworkWalletState();
             applyCachedDataToUI();
@@ -570,7 +568,6 @@
             }
         });
 
-        // Internet connection badalte hi wallet state update hogi
         window.addEventListener('online', () => {
             document.getElementById('offlineModal').style.display = 'none';
             updateNetworkWalletState();
@@ -582,7 +579,6 @@
             updateNetworkWalletState();
         });
 
-        // Yeh function internet ke hone par hi wallet dikhayega, offline hone par wallet gayab karke offline status dikhayega
         function updateNetworkWalletState() {
             let walletBadge = document.getElementById('walletBadgeContainer');
             let offlineBadge = document.getElementById('walletOfflineBadge');
@@ -840,6 +836,17 @@
                         let m = doc.data();
                         let docId = doc.id;
                         let titleLower = (m.title || "").toLowerCase();
+
+                        // Auto-delete match after 24 hours if status is completed
+                        if (m.status === "completed") {
+                            let completedTime = m.completedTimestamp || m.timestamp || Date.now();
+                            if (!m.completedTimestamp) {
+                                db.collection("matches").doc(docId).set({ completedTimestamp: Date.now() }, { merge: true });
+                            } else if (Date.now() - m.completedTimestamp > 24 * 60 * 60 * 1000) {
+                                db.collection("matches").doc(docId).delete();
+                                return;
+                            }
+                        }
                         
                         allMatchesCache.push({ docId, title: m.title, matchId: m.matchId, data: m, joinCounts, userJoinedMatches });
 
@@ -956,6 +963,10 @@
                         let actionDiv = document.getElementById(`match-action-${docId}`);
                         let detailsDiv = document.getElementById(`match-details-${docId}`);
 
+                        if (mData.status === "completed") {
+                            closeRoomNotificationModal();
+                        }
+
                         if(joinedMatches[docId]) {
                             let jData = joinedMatches[docId];
                             if (actionDiv && mData.status !== "completed") {
@@ -964,7 +975,9 @@
                             
                             let roomInfo = mData.roomDetails && mData.roomDetails !== 'Pending' ? mData.roomDetails : 'Will be updated soon by Admin';
                             
-                            if (mData.roomDetails && mData.roomDetails !== 'Pending' && !notifiedRoomsMap[docId]) {
+                            if (mData.status === "completed") {
+                                closeRoomNotificationModal();
+                            } else if (mData.roomDetails && mData.roomDetails !== 'Pending' && !notifiedRoomsMap[docId]) {
                                 notifiedRoomsMap[docId] = true;
                                 showRoomNotificationPopup(mData.title, mData.roomDetails);
                             }
