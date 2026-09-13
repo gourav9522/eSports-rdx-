@@ -287,6 +287,15 @@
             text-align: left;
         }
         .team-box h5 { color: var(--gold); margin: 0 0 8px 0; font-size: 13px; }
+        
+        .task-upload-box {
+            background: #0b101a;
+            border: 1px solid var(--green);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -709,29 +718,92 @@
                 return;
             }
 
-            db.collection("task_completions").where("userId", "==", userId).get().then(completionsSnap => {
-                let completedTasks = {};
-                completionsSnap.forEach(cDoc => { completedTasks[cDoc.data().taskId] = true; });
+            db.collection("task_submissions").where("userId", "==", userId).get().then(subSnap => {
+                let submittedTasks = {};
+                subSnap.forEach(sDoc => {
+                    submittedTasks[sDoc.data().taskId] = sDoc.data().status; // 'Pending' or 'Approved'
+                });
 
                 let html = "";
                 globalTasksCache.slice(0, 2).forEach(task => {
-                    let isDone = completedTasks[task.id];
-                    let actionBtn = isDone 
-                        ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                        : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
+                    let subStatus = submittedTasks[task.id];
+                    let actionHtml = '';
+
+                    if (subStatus === 'Approved') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`;
+                    } else if (subStatus === 'Pending') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>Pending Verification ⏳</button>`;
+                    } else {
+                        actionHtml = `
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUpload('${task.id}')">Start Task & Send Screenshot</button>
+                            <div id="uploadBox_${task.id}" class="task-upload-box">
+                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 2:</b> Upload Screenshot of completion:</p>
+                                <input type="file" id="screenshotFile_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshot('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot</button>
+                            </div>
+                        `;
+                    }
 
                     html += `
                         <div style="background: #080c14; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--card-border);">
                             <b style="font-size: 13px; color: #fff;">${task.title}</b>
                             <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
                             <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                            ${actionBtn}
+                            ${actionHtml}
                         </div>
                     `;
                 });
                 taskListEl.innerHTML = html;
                 localStorage.setItem('cache_dailyTasksList', html);
             }).catch(e => {});
+        }
+
+        function toggleTaskUpload(taskId) {
+            let box = document.getElementById('uploadBox_' + taskId);
+            if (box) {
+                box.style.display = box.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        function submitTaskScreenshot(taskId, taskTitle, reward) {
+            let user = auth.currentUser;
+            if (!user) {
+                alert("Please login first!");
+                return;
+            }
+
+            let fileInput = document.getElementById('screenshotFile_' + taskId);
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                alert("Please select/upload a screenshot first!");
+                return;
+            }
+
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function () {
+                let base64Image = reader.result;
+
+                db.collection("task_submissions").add({
+                    userId: user.uid,
+                    userName: user.displayName || "Gamer",
+                    taskId: taskId,
+                    taskTitle: taskTitle,
+                    reward: reward,
+                    screenshot: base64Image,
+                    status: "Pending",
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Screenshot submitted successfully! Admin will verify and reward coins soon.");
+                    loadDailyTasks(user.uid);
+                }).catch(err => {
+                    alert("Error submitting screenshot: " + err.message);
+                });
+            };
+            reader.onerror = function (error) {
+                alert("Error reading file: " + error);
+            };
         }
 
         function openAllTasksModal() {
@@ -760,23 +832,39 @@
                 return;
             }
 
-            db.collection("task_completions").where("userId", "==", user.uid).get().then(completionsSnap => {
-                let completedTasks = {};
-                completionsSnap.forEach(cDoc => { completedTasks[cDoc.data().taskId] = true; });
+            db.collection("task_submissions").where("userId", "==", user.uid).get().then(subSnap => {
+                let submittedTasks = {};
+                subSnap.forEach(sDoc => {
+                    submittedTasks[sDoc.data().taskId] = sDoc.data().status;
+                });
 
                 let html = "";
                 globalTasksCache.forEach(task => {
-                    let isDone = completedTasks[task.id];
-                    let actionBtn = isDone 
-                        ? `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`
-                        : `<button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="startTask('${task.id}', '${task.link}', ${task.reward})">Start Task</button>`;
+                    let subStatus = submittedTasks[task.id];
+                    let actionHtml = '';
+
+                    if (subStatus === 'Approved') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`;
+                    } else if (subStatus === 'Pending') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>Pending Verification ⏳</button>`;
+                    } else {
+                        actionHtml = `
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUploadAll('${task.id}')">Start Task & Send Screenshot</button>
+                            <div id="uploadBoxAll_${task.id}" class="task-upload-box">
+                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 2:</b> Upload Screenshot of completion:</p>
+                                <input type="file" id="screenshotFileAll_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshotAll('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot</button>
+                            </div>
+                        `;
+                    }
 
                     html += `
                         <div style="background: #080c14; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--card-border);">
                             <b style="font-size: 13px; color: #fff;">${task.title}</b>
                             <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || ''}</p>
                             <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                            ${actionBtn}
+                            ${actionHtml}
                         </div>
                     `;
                 });
@@ -784,15 +872,52 @@
             });
         }
 
-        function closeAllTasksModal() { document.getElementById('allTasksModal').style.display = 'none'; }
-
-        function startTask(taskId, taskLink, reward) {
-            let user = auth.currentUser;
-            if(!user) { alert("Please login first!"); return; }
-            let finalUrl = taskLink.includes("?") ? `${taskLink}&subId=${user.uid}&taskId=${taskId}` : `${taskLink}?subId=${user.uid}&taskId=${taskId}`;
-            window.open(finalUrl, '_blank');
-            alert(`Task opened! Complete instructions. +${reward} coins will be credited automatically upon server verification.`);
+        function toggleTaskUploadAll(taskId) {
+            let box = document.getElementById('uploadBoxAll_' + taskId);
+            if (box) {
+                box.style.display = box.style.display === 'block' ? 'none' : 'block';
+            }
         }
+
+        function submitTaskScreenshotAll(taskId, taskTitle, reward) {
+            let user = auth.currentUser;
+            if (!user) {
+                alert("Please login first!");
+                return;
+            }
+
+            let fileInput = document.getElementById('screenshotFileAll_' + taskId);
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                alert("Please select/upload a screenshot first!");
+                return;
+            }
+
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function () {
+                let base64Image = reader.result;
+
+                db.collection("task_submissions").add({
+                    userId: user.uid,
+                    userName: user.displayName || "Gamer",
+                    taskId: taskId,
+                    taskTitle: taskTitle,
+                    reward: reward,
+                    screenshot: base64Image,
+                    status: "Pending",
+                    timestamp: Date.now()
+                }).then(() => {
+                    alert("Screenshot submitted successfully! Admin will verify and reward coins soon.");
+                    openAllTasksModal();
+                    loadDailyTasks(user.uid);
+                }).catch(err => {
+                    alert("Error submitting screenshot: " + err.message);
+                });
+            };
+        }
+
+        function closeAllTasksModal() { document.getElementById('allTasksModal').style.display = 'none'; }
 
         db.collection("settings").doc("config").onSnapshot(doc => {
             if(!navigator.onLine || !doc.exists) return;
@@ -837,7 +962,6 @@
                         let docId = doc.id;
                         let titleLower = (m.title || "").toLowerCase();
 
-                        // Auto-delete match after 24 hours if status is completed
                         if (m.status === "completed") {
                             let completedTime = m.completedTimestamp || m.timestamp || Date.now();
                             if (!m.completedTimestamp) {
