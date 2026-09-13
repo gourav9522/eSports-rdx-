@@ -302,7 +302,7 @@
 
     <header>
         <div class="header-left" onclick="openProfileDashboardModal()">
-            <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
+            <img id="topUserAvatar" src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" alt="Logo">
             <div>
                 <div style="font-size:10px; color:var(--text-gray); text-transform:uppercase;">Profile Panel</div>
                 <div id="topUserName" class="user-greeting">Loading...</div>
@@ -328,7 +328,7 @@
 
         <div id="authSection" class="card" style="text-align: center; display:none;">
             <h3 style="color:var(--gold);">Login to Continue</h3>
-            <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google</button>
+            <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google (Direct)</button>
         </div>
 
         <div class="card" style="border: 1px solid rgba(243, 183, 30, 0.4); background: #111622;">
@@ -368,6 +368,21 @@
             <button class="mini-btn" onclick="showJoinedMatchesOnly()" style="background:#1e293b; color:var(--gold); border-color:var(--gold);">My Joined</button>
         </div>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <div id="setupProfileModal" class="modal" style="z-index: 5000;">
+        <div class="modal-content" style="border-color: var(--green);">
+            <h3 style="color:var(--green); margin-top:0;">✨ Setup Your Profile</h3>
+            <p style="font-size: 13px; color: var(--text-gray);">Choose a unique Instagram-style username and optional profile picture.</p>
+            
+            <label style="font-size:12px; color:var(--gold); display:block; text-align:left;">Unique Username:</label>
+            <input type="text" id="setupUniqueUsername" placeholder="e.g. rdx_gamer_99" style="border: 1px solid var(--green);">
+            
+            <label style="font-size:12px; color:var(--gold); display:block; text-align:left; margin-top:8px;">Profile Picture URL (Optional):</label>
+            <input type="text" id="setupProfilePicUrl" placeholder="Paste Image URL or leave blank to skip">
+
+            <button class="btn btn-green" onclick="saveUserProfileSetup()" style="margin-top:12px;">Save & Continue</button>
+        </div>
     </div>
 
     <div id="offlineModal" class="modal" style="z-index: 9999;">
@@ -606,10 +621,12 @@
             let cachedName = localStorage.getItem('cache_topUserName') || (user ? user.displayName : "Gamer");
             let cachedMatches = localStorage.getItem('cache_matchesList') || "<p style='color:var(--text-gray); text-align:center;'>No offline matches found.</p>";
             let cachedTasks = localStorage.getItem('cache_dailyTasksList') || "<p style='font-size: 13px; color: var(--text-gray);'>No offline tasks found.</p>";
+            let cachedAvatar = localStorage.getItem('cache_topUserAvatar') || "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
 
             document.getElementById('topUserName').innerText = cachedName;
             document.getElementById('matchesList').innerHTML = cachedMatches;
             document.getElementById('dailyTasksList').innerHTML = cachedTasks;
+            document.getElementById('topUserAvatar').src = cachedAvatar;
         }
 
         function retryConnection() {
@@ -631,7 +648,9 @@
 
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithRedirect(provider).catch(e => alert(e.message));
+            auth.signInWithPopup(provider).then(result => {
+                checkAndSetupUserProfile(result.user);
+            }).catch(e => alert(e.message));
         }
 
         function logout() { 
@@ -639,19 +658,14 @@
             localStorage.clear();
             document.getElementById('authSection').style.display = 'block';
             document.getElementById('topUserName').innerText = "Guest User";
+            document.getElementById('topUserAvatar').src = "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
         }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('authSection').style.display = 'none';
-                let cachedName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "User";
-                document.getElementById('topUserName').innerText = cachedName;
-
-                applyCachedDataToUI();
-                setupUserAccount(user);
-                loadMatches();
-                loadDailyTasks(user.uid);
+                checkAndSetupUserProfile(user);
             } else {
                 document.getElementById('authSection').style.display = 'block';
                 document.getElementById('topUserName').innerText = "Guest User";
@@ -659,6 +673,65 @@
                 loadDailyTasks(null);
             }
         });
+
+        function checkAndSetupUserProfile(user) {
+            db.collection("users").doc(user.uid).get().then(doc => {
+                if (!doc.exists || !doc.data().name) {
+                    // Prompt user for unique username & profile pic
+                    document.getElementById('setupProfileModal').style.display = 'flex';
+                } else {
+                    let data = doc.data();
+                    let uName = data.name || user.displayName || "Gamer";
+                    let uAvatar = data.photoUrl || user.photoURL || "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
+                    
+                    document.getElementById('topUserName').innerText = uName;
+                    document.getElementById('topUserAvatar').src = uAvatar;
+                    localStorage.setItem('user_name_' + user.uid, uName);
+                    localStorage.setItem('cache_topUserName', uName);
+                    localStorage.setItem('cache_topUserAvatar', uAvatar);
+                }
+                setupUserAccount(user);
+                loadMatches();
+                loadDailyTasks(user.uid);
+            });
+        }
+
+        function saveUserProfileSetup() {
+            let user = auth.currentUser;
+            if (!user) return;
+            let customName = document.getElementById('setupUniqueUsername').value.trim();
+            let customPic = document.getElementById('setupProfilePicUrl').value.trim();
+
+            if (!customName) {
+                alert("Please enter a unique username!");
+                return;
+            }
+
+            // Check uniqueness in Firestore
+            db.collection("users").where("name", "==", customName).get().then(snapshot => {
+                if (!snapshot.empty) {
+                    alert("This username is already taken! Please choose another unique username.");
+                    return;
+                }
+
+                let finalPic = customPic || user.photoURL || "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
+
+                db.collection("users").doc(user.uid).set({
+                    name: customName,
+                    photoUrl: finalPic,
+                    email: user.email || "",
+                    wallet: 0
+                }, { merge: true }).then(() => {
+                    document.getElementById('setupProfileModal').style.display = 'none';
+                    document.getElementById('topUserName').innerText = customName;
+                    document.getElementById('topUserAvatar').src = finalPic;
+                    localStorage.setItem('user_name_' + user.uid, customName);
+                    localStorage.setItem('cache_topUserName', customName);
+                    localStorage.setItem('cache_topUserAvatar', finalPic);
+                    alert("Profile setup successful!");
+                });
+            });
+        }
 
         function setupUserAccount(user) {
             db.collection("users").doc(user.uid).onSnapshot(doc => {
@@ -676,6 +749,10 @@
                     localStorage.setItem('user_name_' + user.uid, data.name);
                     document.getElementById('topUserName').innerText = data.name;
                     localStorage.setItem('cache_topUserName', data.name);
+                }
+                if(data && data.photoUrl) {
+                    document.getElementById('topUserAvatar').src = data.photoUrl;
+                    localStorage.setItem('cache_topUserAvatar', data.photoUrl);
                 }
             }, error => {
                 if (!navigator.onLine) {
@@ -721,7 +798,7 @@
             db.collection("task_submissions").where("userId", "==", userId).get().then(subSnap => {
                 let submittedTasks = {};
                 subSnap.forEach(sDoc => {
-                    submittedTasks[sDoc.data().taskId] = sDoc.data().status; // 'Pending' or 'Approved'
+                    submittedTasks[sDoc.data().taskId] = sDoc.data().status; 
                 });
 
                 let html = "";
@@ -729,18 +806,19 @@
                     let subStatus = submittedTasks[task.id];
                     let actionHtml = '';
 
-                    if (subStatus === 'Approved') {
-                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`;
-                    } else if (subStatus === 'Pending') {
-                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>Pending Verification ⏳</button>`;
+                    if (subStatus === 'Complete' || subStatus === 'Approved') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Complete ✓</button>`;
+                    } else if (subStatus === 'Pending' || subStatus === 'Task Complete, wait some min') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>${subStatus} ⏳</button>`;
                     } else {
                         actionHtml = `
                             <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUpload('${task.id}')">Start Task & Send Screenshot</button>
                             <div id="uploadBox_${task.id}" class="task-upload-box">
                                 <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 2:</b> Upload Screenshot of completion:</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 2 (WhatsApp Channel):</b> <a href="https://chat.whatsapp.com/DlTN53W5mOC4OkQb9L3Hc5?s=cl&p=a&mlu=4&ilr=4" target="_blank" style="color:var(--green);">Join WhatsApp Channel</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 3:</b> Upload Screenshot:</p>
                                 <input type="file" id="screenshotFile_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshot('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot</button>
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshot('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot to Channel & Admin</button>
                             </div>
                         `;
                     }
@@ -784,25 +862,38 @@
             reader.readAsDataURL(file);
             reader.onload = function () {
                 let base64Image = reader.result;
+                let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
 
                 db.collection("task_submissions").add({
                     userId: user.uid,
-                    userName: user.displayName || "Gamer",
+                    userName: uName,
                     taskId: taskId,
                     taskTitle: taskTitle,
                     reward: reward,
                     screenshot: base64Image,
-                    status: "Pending",
+                    status: "Task Complete, wait some min",
                     timestamp: Date.now()
                 }).then(() => {
-                    alert("Screenshot submitted successfully! Admin will verify and reward coins soon.");
+                    alert("Screenshot submitted successfully with your User Name & ID! Verification running...");
                     loadDailyTasks(user.uid);
+
+                    // Background 2-second timer trigger then 5 min simulation for "Complete"
+                    setTimeout(() => {
+                        db.collection("task_submissions").where("userId", "==", user.uid).where("taskId", "==", taskId).get().then(snap => {
+                            snap.forEach(doc => {
+                                // After 5 mins (simulated or real timer check), set to Complete
+                                setTimeout(() => {
+                                    doc.ref.update({ status: "Complete" }).then(() => {
+                                        loadDailyTasks(user.uid);
+                                    });
+                                }, 300000); // 5 minutes (300,000 ms)
+                            });
+                        });
+                    }, 2000); // 2 seconds timer delay
+
                 }).catch(err => {
                     alert("Error submitting screenshot: " + err.message);
                 });
-            };
-            reader.onerror = function (error) {
-                alert("Error reading file: " + error);
             };
         }
 
@@ -843,18 +934,19 @@
                     let subStatus = submittedTasks[task.id];
                     let actionHtml = '';
 
-                    if (subStatus === 'Approved') {
-                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Completed ✓</button>`;
-                    } else if (subStatus === 'Pending') {
-                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>Pending Verification ⏳</button>`;
+                    if (subStatus === 'Complete' || subStatus === 'Approved') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" disabled>Complete ✓</button>`;
+                    } else if (subStatus === 'Pending' || subStatus === 'Task Complete, wait some min') {
+                        actionHtml = `<button class="btn btn-gray" style="padding: 6px 12px; font-size: 12px; margin-top: 5px; color:var(--gold); border:1px solid var(--gold);" disabled>${subStatus} ⏳</button>`;
                     } else {
                         actionHtml = `
                             <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUploadAll('${task.id}')">Start Task & Send Screenshot</button>
                             <div id="uploadBoxAll_${task.id}" class="task-upload-box">
                                 <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 2:</b> Upload Screenshot of completion:</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 2 (WhatsApp Channel):</b> <a href="https://chat.whatsapp.com/DlTN53W5mOC4OkQb9L3Hc5?s=cl&p=a&mlu=4&ilr=4" target="_blank" style="color:var(--green);">Join WhatsApp Channel</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 3:</b> Upload Screenshot:</p>
                                 <input type="file" id="screenshotFileAll_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshotAll('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot</button>
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshotAll('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot to Channel & Admin</button>
                             </div>
                         `;
                     }
@@ -897,20 +989,34 @@
             reader.readAsDataURL(file);
             reader.onload = function () {
                 let base64Image = reader.result;
+                let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
 
                 db.collection("task_submissions").add({
                     userId: user.uid,
-                    userName: user.displayName || "Gamer",
+                    userName: uName,
                     taskId: taskId,
                     taskTitle: taskTitle,
                     reward: reward,
                     screenshot: base64Image,
-                    status: "Pending",
+                    status: "Task Complete, wait some min",
                     timestamp: Date.now()
                 }).then(() => {
-                    alert("Screenshot submitted successfully! Admin will verify and reward coins soon.");
+                    alert("Screenshot submitted successfully! Verification running...");
                     openAllTasksModal();
                     loadDailyTasks(user.uid);
+
+                    setTimeout(() => {
+                        db.collection("task_submissions").where("userId", "==", user.uid).where("taskId", "==", taskId).get().then(snap => {
+                            snap.forEach(doc => {
+                                setTimeout(() => {
+                                    doc.ref.update({ status: "Complete" }).then(() => {
+                                        loadDailyTasks(user.uid);
+                                    });
+                                }, 300000); // 5 mins
+                            });
+                        });
+                    }, 2000); // 2 secs timer delay
+
                 }).catch(err => {
                     alert("Error submitting screenshot: " + err.message);
                 });
@@ -1107,10 +1213,11 @@
                             }
 
                             let teamInfoText = jData.teamType ? `(${jData.teamType.toUpperCase()} - Team ID: ${jData.ffId2 ? 'Team A & B' : 'Team A'})` : '';
+                            let currentUserName = localStorage.getItem('user_name_' + uid) || (auth.currentUser ? auth.currentUser.displayName : "User");
                             if(detailsDiv) {
                                 detailsDiv.innerHTML = `
                                     <div style="background:#080c14; padding:8px; border-radius:5px; font-size:13px; border:1px solid var(--gold);">
-                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${auth.currentUser ? auth.currentUser.displayName : "User"} ${teamInfoText}</p>
+                                        <p style="margin:2px 0; color:var(--gold);"><b>User Name:</b> ${currentUserName} ${teamInfoText}</p>
                                         <p style="margin:2px 0;"><b>FF ID(s):</b> ${jData.ffId} ${jData.ffId2 ? ' / ' + jData.ffId2 : ''}</p>
                                         <p style="margin:2px 0; color:var(--green);"><b>Room ID & Pass:</b> ${roomInfo}</p>
                                     </div>
@@ -1245,10 +1352,11 @@
                 }
 
                 db.collection("users").doc(user.uid).update({ wallet: wallet - totalFee }).then(() => {
+                    let currentUserName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
                     db.collection("joins").add({
                         matchId: matchId,
                         userId: user.uid,
-                        userName: user.displayName,
+                        userName: currentUserName,
                         ffId: ffId1,
                         ffId2: ffId2 || "",
                         teamType: teamType,
