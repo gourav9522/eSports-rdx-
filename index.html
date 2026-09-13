@@ -295,6 +295,7 @@
             border-radius: 8px;
             margin-top: 8px;
             display: none;
+            text-align: left;
         }
     </style>
 </head>
@@ -482,8 +483,9 @@
                 🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
                 🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DM us on Instagram.<br><br>
                 
-                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain Instagram par:<br>
-                <a href="https://www.instagram.com/esports_rdx_official?stkn=Y2k0Njk1a3NpdnR1" target="_blank" class="btn btn-gold" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px;">Instagram Profile Link</a><br>
+                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain:<br>
+                <a href="https://www.instagram.com/esports_rdx_official?stkn=Y2k0Njk1a3NpdnR1" target="_blank" class="btn btn-gold" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px;">Instagram Profile Link</a>
+                <a href="https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1" target="_blank" class="btn" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px; background:#25D366; color:#fff;">Join Official WhatsApp Group</a><br>
                 
                 🔗 <b>Referral or Invite Link:</b><br>
                 <input type="text" id="shareAppUrl" value="https://esports-rdx.blogspot.com/?m=0" readonly style="font-size:12px; padding:6px; margin:4px 0;"><br>
@@ -677,7 +679,6 @@
         function checkAndSetupUserProfile(user) {
             db.collection("users").doc(user.uid).get().then(doc => {
                 if (!doc.exists || !doc.data().name) {
-                    // Prompt user for unique username & profile pic
                     document.getElementById('setupProfileModal').style.display = 'flex';
                 } else {
                     let data = doc.data();
@@ -707,7 +708,6 @@
                 return;
             }
 
-            // Check uniqueness in Firestore
             db.collection("users").where("name", "==", customName).get().then(snapshot => {
                 if (!snapshot.empty) {
                     alert("This username is already taken! Please choose another unique username.");
@@ -814,11 +814,12 @@
                         actionHtml = `
                             <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUpload('${task.id}')">Start Task & Send Screenshot</button>
                             <div id="uploadBox_${task.id}" class="task-upload-box">
-                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
-                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 2 (WhatsApp Channel):</b> <a href="https://chat.whatsapp.com/DlTN53W5mOC4OkQb9L3Hc5?s=cl&p=a&mlu=4&ilr=4" target="_blank" style="color:var(--green);">Join WhatsApp Channel</a></p>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 3:</b> Upload Screenshot:</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 2:</b> Take a screenshot of the completed task.</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 3 (WhatsApp Group):</b> <a href="https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1" target="_blank" style="color:var(--green);">Join Official WhatsApp Group</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 3px 0;"><b>Step 4:</b> Select Screenshot & Click Send:</p>
                                 <input type="file" id="screenshotFile_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshot('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot to Channel & Admin</button>
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskToWhatsApp('${task.id}', '${task.title}', ${task.reward})">📤 Send Screenshot & Username to WhatsApp Group</button>
                             </div>
                         `;
                     }
@@ -844,7 +845,7 @@
             }
         }
 
-        function submitTaskScreenshot(taskId, taskTitle, reward) {
+        function submitTaskToWhatsApp(taskId, taskTitle, reward) {
             let user = auth.currentUser;
             if (!user) {
                 alert("Please login first!");
@@ -857,44 +858,29 @@
                 return;
             }
 
-            let file = fileInput.files[0];
-            let reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function () {
-                let base64Image = reader.result;
-                let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
+            let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
+            let msgText = `*Task Completion Proof*\n👤 Username: ${uName}\n🎮 Task: ${taskTitle}\n🎁 Reward: ${reward} Coins\n*Note: Please attach/send your screenshot here in the group!*`;
 
-                db.collection("task_submissions").add({
-                    userId: user.uid,
-                    userName: uName,
-                    taskId: taskId,
-                    taskTitle: taskTitle,
-                    reward: reward,
-                    screenshot: base64Image,
-                    status: "Task Complete, wait some min",
-                    timestamp: Date.now()
-                }).then(() => {
-                    alert("Screenshot submitted successfully with your User Name & ID! Verification running...");
-                    loadDailyTasks(user.uid);
+            // Open WhatsApp Group URL with pre-filled message text
+            let waGroupUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgText)}`;
+            window.open(waGroupUrl, '_blank');
 
-                    // Background 2-second timer trigger then 5 min simulation for "Complete"
-                    setTimeout(() => {
-                        db.collection("task_submissions").where("userId", "==", user.uid).where("taskId", "==", taskId).get().then(snap => {
-                            snap.forEach(doc => {
-                                // After 5 mins (simulated or real timer check), set to Complete
-                                setTimeout(() => {
-                                    doc.ref.update({ status: "Complete" }).then(() => {
-                                        loadDailyTasks(user.uid);
-                                    });
-                                }, 300000); // 5 minutes (300,000 ms)
-                            });
-                        });
-                    }, 2000); // 2 seconds timer delay
+            // Also open WhatsApp group invite link
+            window.open('https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1', '_blank');
 
-                }).catch(err => {
-                    alert("Error submitting screenshot: " + err.message);
-                });
-            };
+            // Save status locally/Firestore
+            db.collection("task_submissions").add({
+                userId: user.uid,
+                userName: uName,
+                taskId: taskId,
+                taskTitle: taskTitle,
+                reward: reward,
+                status: "Task Complete, wait some min",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Redirecting to WhatsApp Group! Please attach your screenshot there.");
+                loadDailyTasks(user.uid);
+            });
         }
 
         function openAllTasksModal() {
@@ -942,11 +928,12 @@
                         actionHtml = `
                             <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="toggleTaskUploadAll('${task.id}')">Start Task & Send Screenshot</button>
                             <div id="uploadBoxAll_${task.id}" class="task-upload-box">
-                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
-                                <p style="font-size: 11px; color: var(--gold); margin: 4px 0;"><b>Step 2 (WhatsApp Channel):</b> <a href="https://chat.whatsapp.com/DlTN53W5mOC4OkQb9L3Hc5?s=cl&p=a&mlu=4&ilr=4" target="_blank" style="color:var(--green);">Join WhatsApp Channel</a></p>
-                                <p style="font-size: 11px; color: var(--text-gray); margin: 4px 0;"><b>Step 3:</b> Upload Screenshot:</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 1:</b> <a href="${task.link}" target="_blank" style="color:var(--accent-blue);">Open Task Link Here</a></p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 2:</b> Take a screenshot of the completed task.</p>
+                                <p style="font-size: 11px; color: var(--gold); margin: 3px 0;"><b>Step 3 (WhatsApp Group):</b> <a href="https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1" target="_blank" style="color:var(--green);">Join Official WhatsApp Group</a></p>
+                                <p style="font-size: 11px; color: var(--text-gray); margin: 3px 0;"><b>Step 4:</b> Select Screenshot & Click Send:</p>
                                 <input type="file" id="screenshotFileAll_${task.id}" accept="image/*" style="font-size:11px; padding:4px; margin:4px 0;">
-                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskScreenshotAll('${task.id}', '${task.title}', ${task.reward})">Submit Screenshot to Channel & Admin</button>
+                                <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 4px;" onclick="submitTaskToWhatsAppAll('${task.id}', '${task.title}', ${task.reward})">📤 Send Screenshot & Username to WhatsApp Group</button>
                             </div>
                         `;
                     }
@@ -971,7 +958,7 @@
             }
         }
 
-        function submitTaskScreenshotAll(taskId, taskTitle, reward) {
+        function submitTaskToWhatsAppAll(taskId, taskTitle, reward) {
             let user = auth.currentUser;
             if (!user) {
                 alert("Please login first!");
@@ -984,43 +971,26 @@
                 return;
             }
 
-            let file = fileInput.files[0];
-            let reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function () {
-                let base64Image = reader.result;
-                let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
+            let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
+            let msgText = `*Task Completion Proof*\n👤 Username: ${uName}\n🎮 Task: ${taskTitle}\n🎁 Reward: ${reward} Coins\n*Note: Please attach/send your screenshot here in the group!*`;
 
-                db.collection("task_submissions").add({
-                    userId: user.uid,
-                    userName: uName,
-                    taskId: taskId,
-                    taskTitle: taskTitle,
-                    reward: reward,
-                    screenshot: base64Image,
-                    status: "Task Complete, wait some min",
-                    timestamp: Date.now()
-                }).then(() => {
-                    alert("Screenshot submitted successfully! Verification running...");
-                    openAllTasksModal();
-                    loadDailyTasks(user.uid);
+            let waGroupUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgText)}`;
+            window.open(waGroupUrl, '_blank');
+            window.open('https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1', '_blank');
 
-                    setTimeout(() => {
-                        db.collection("task_submissions").where("userId", "==", user.uid).where("taskId", "==", taskId).get().then(snap => {
-                            snap.forEach(doc => {
-                                setTimeout(() => {
-                                    doc.ref.update({ status: "Complete" }).then(() => {
-                                        loadDailyTasks(user.uid);
-                                    });
-                                }, 300000); // 5 mins
-                            });
-                        });
-                    }, 2000); // 2 secs timer delay
-
-                }).catch(err => {
-                    alert("Error submitting screenshot: " + err.message);
-                });
-            };
+            db.collection("task_submissions").add({
+                userId: user.uid,
+                userName: uName,
+                taskId: taskId,
+                taskTitle: taskTitle,
+                reward: reward,
+                status: "Task Complete, wait some min",
+                timestamp: Date.now()
+            }).then(() => {
+                alert("Redirecting to WhatsApp Group! Please attach your screenshot there.");
+                openAllTasksModal();
+                loadDailyTasks(user.uid);
+            });
         }
 
         function closeAllTasksModal() { document.getElementById('allTasksModal').style.display = 'none'; }
