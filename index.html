@@ -327,11 +327,6 @@
             <button class="btn btn-gold" onclick="openMonthlyEventModal()">View Monthly Event</button>
         </div>
 
-        <div id="authSection" class="card" style="text-align: center; display:none;">
-            <h3 style="color:var(--gold);">Login to Continue</h3>
-            <button class="btn btn-green" onclick="loginWithGoogle()">Login with Google (Direct)</button>
-        </div>
-
         <div class="card" style="border: 1px solid rgba(243, 183, 30, 0.4); background: #111622;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="color: var(--gold); margin: 0;">🎯 Daily Tasks & Earn</h3>
@@ -369,6 +364,18 @@
             <button class="mini-btn" onclick="showJoinedMatchesOnly()" style="background:#1e293b; color:var(--gold); border-color:var(--gold);">My Joined</button>
         </div>
         <div id="matchesList">Loading matches...</div>
+    </div>
+
+    <!-- Login Popup Modal -->
+    <div id="loginModal" class="modal" style="z-index: 6000;">
+        <div class="modal-content" style="border-color: var(--gold); text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 5px;">🎮</div>
+            <h3 style="color:var(--gold); margin-top:0;">Welcome to eSports RDX</h3>
+            <p style="font-size: 13px; color: var(--text-gray); margin-bottom: 20px;">Please login with your Google account to join tournaments, manage wallet, and win prizes!</p>
+            <button class="btn btn-green" onclick="loginWithGoogle()" style="padding: 14px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>🌐</span> Login with Google (Direct)
+            </button>
+        </div>
     </div>
 
     <div id="setupProfileModal" class="modal" style="z-index: 5000;">
@@ -651,6 +658,7 @@
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
             auth.signInWithPopup(provider).then(result => {
+                document.getElementById('loginModal').style.display = 'none';
                 checkAndSetupUserProfile(result.user);
             }).catch(e => alert(e.message));
         }
@@ -658,7 +666,7 @@
         function logout() { 
             auth.signOut();
             localStorage.clear();
-            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('topUserName').innerText = "Guest User";
             document.getElementById('topUserAvatar').src = "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
@@ -666,10 +674,10 @@
 
         auth.onAuthStateChanged(user => {
             if (user) {
-                document.getElementById('authSection').style.display = 'none';
+                document.getElementById('loginModal').style.display = 'none';
                 checkAndSetupUserProfile(user);
             } else {
-                document.getElementById('authSection').style.display = 'block';
+                document.getElementById('loginModal').style.display = 'flex';
                 document.getElementById('topUserName').innerText = "Guest User";
                 loadMatches();
                 loadDailyTasks(null);
@@ -786,7 +794,7 @@
                             <b style="font-size: 13px; color: #fff;">${task.title}</b>
                             <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || 'Complete this task to earn coins.'}</p>
                             <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first to complete tasks!')">Start Task</button>
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="document.getElementById('loginModal').style.display = 'flex';">Start Task</button>
                         </div>
                     `;
                 });
@@ -848,7 +856,7 @@
         function submitTaskToWhatsApp(taskId, taskTitle, reward) {
             let user = auth.currentUser;
             if (!user) {
-                alert("Please login first!");
+                document.getElementById('loginModal').style.display = 'flex';
                 return;
             }
 
@@ -897,7 +905,7 @@
                             <b style="font-size: 13px; color: #fff;">${task.title}</b>
                             <p style="font-size: 11px; color: var(--text-gray); margin: 2px 0;">${task.description || ''}</p>
                             <p style="font-size: 11px; color: var(--green); margin: 2px 0;">Reward: +${task.reward} Coins</p>
-                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="alert('Please login first!')">Start Task</button>
+                            <button class="btn btn-green" style="padding: 6px 12px; font-size: 12px; margin-top: 5px;" onclick="document.getElementById('loginModal').style.display = 'flex';">Start Task</button>
                         </div>
                     `;
                 });
@@ -957,7 +965,7 @@
         function submitTaskToWhatsAppAll(taskId, taskTitle, reward) {
             let user = auth.currentUser;
             if (!user) {
-                alert("Please login first!");
+                document.getElementById('loginModal').style.display = 'flex';
                 return;
             }
 
@@ -1214,7 +1222,7 @@
 
         function openJoinModal(matchId, entryFee, matchTitle, matchType) {
             let user = auth.currentUser;
-            if(!user) { alert("Pehle login karein!"); return; }
+            if(!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
 
             activeJoinMatchId = matchId;
             activeJoinFee = entryFee;
@@ -1302,7 +1310,7 @@
 
         function joinMatchDirect(matchId, totalFee, matchTitle, teamType, ffId1, ffId2) {
             let user = auth.currentUser;
-            if(!user) { alert("Pehle login karein!"); return; }
+            if(!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
 
             let currentTime = Date.now();
             if (currentTime - lastActionTime < 3000) return;
@@ -1343,7 +1351,7 @@
             document.getElementById('winningHistoryModal').style.display = 'flex';
             let user = auth.currentUser;
             let listEl = document.getElementById('winningHistoryList');
-            if(!user) { listEl.innerHTML = "Pehle login karein!"; return; }
+            if(!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
 
             db.collection("winnings").where("userId", "==", user.uid).get().then(snap => {
                 if(snap.empty) { listEl.innerHTML = "Koi winning record nahi mila."; return; }
@@ -1365,7 +1373,7 @@
             document.getElementById('withdrawalHistoryModal').style.display = 'flex';
             let user = auth.currentUser;
             let listEl = document.getElementById('withdrawalHistoryList');
-            if(!user) { listEl.innerHTML = "Pehle login karein!"; return; }
+            if(!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
 
             db.collection("withdrawals").where("userId", "==", user.uid).get().then(snap => {
                 if(snap.empty) { listEl.innerHTML = "Koi withdrawal record nahi mila."; return; }
@@ -1391,7 +1399,7 @@
 
         async function initiateDynamicQRPayment(baseAmount) {
             let user = auth.currentUser;
-            if (!user) { alert("Please login first!"); return; }
+            if (!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
 
             let decimals = { 10: 0.31, 20: 0.52, 30: 0.74, 50: 0.15, 100: 0.99, 150: 0.22, 200: 0.38, 300: 0.45, 500: 0.67, 1000: 0.88 };
             let finalAmount = baseAmount + (decimals[baseAmount] || 0.10);
@@ -1438,7 +1446,7 @@
 
         function submitWithdrawal(amt) {
             let user = auth.currentUser;
-            if(!user) return;
+            if(!user) { document.getElementById('loginModal').style.display = 'flex'; return; }
             let upi = prompt("Apni Withdrawal UPI ID enter karein:");
             if(!upi || !upi.includes("@")) { alert("Please enter a valid UPI ID!"); return; }
 
