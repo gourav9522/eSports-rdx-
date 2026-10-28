@@ -477,14 +477,14 @@
         <div class="modal-content">
             <h3 style="color:var(--gold);">Support & Help</h3>
             <p style="font-size:13px; line-height:1.4; text-align:left;">
-                🇮🇳 <b>Hindi:</b> Agar coin turant add na ho to ghabraye nahi, 2 se 3 hour main add kar diye jayenge.<br>
-                🇮🇳 <b>Monthly Event (Hindi):</b> Monthly event official tarike se highly prize ke honge aur aap hamare Instagram par DM karke khud ka bhi karwa sakte hain.<br><br>
+                🎮 <b>Welcome to eSports RDX:</b> The ultimate competitive Free Fire eSports platform designed to train players, build top squads, and select elite teams for major official tournaments and high-prize championships.<br><br>
                 
-                🇬🇧 <b>English:</b> If coins are not added instantly, don't worry, they will be added within 2 to 3 hours.<br>
-                🇬🇧 <b>Monthly Event (English):</b> Monthly events will be conducted officially with high prizes, and you can also host your own by DM us on Instagram.<br><br>
+                ⏱️ <b>Coin & Wallet Updates:</b> If coins or winning rewards are not added instantly to your wallet, please do not panic. They will be successfully credited within 2 to 3 hours after administrative verification.<br><br>
                 
-                💬 <b>Official Contact:</b> Aap hamare official account par message kar sakte hain:<br>
-                <a href="https://www.instagram.com/esports_rdx_official?stkn=Y2k0Njk1a3NpdnR1" target="_blank" class="btn btn-gold" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px;">Instagram Profile Link</a>
+                🏆 <b>Monthly & Official Tournaments:</b> Monthly special events and high-prize tournaments are conducted officially. Top-performing players and squads from our platform get selected and promoted for elite eSports leagues. You can also host your own custom matches by contacting us directly.<br><br>
+                
+                💬 <b>Official Contacts & Community:</b><br>
+                <a href="https://t.me/esportrdx" target="_blank" class="btn btn-gold" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px; background:#0088cc; color:#fff;">Join Official Telegram Channel</a>
                 <a href="https://chat.whatsapp.com/Irv4FXKAOKOCutllFr4lv1" target="_blank" class="btn" style="display:block; text-align:center; text-decoration:none; margin:8px 0; padding:8px; background:#25D366; color:#fff;">Join Official WhatsApp Group</a><br>
                 
                 🔗 <b>Referral or Invite Link:</b><br>
@@ -861,14 +861,10 @@
             let uName = localStorage.getItem('user_name_' + user.uid) || user.displayName || "Gamer";
             let msgText = `*Task Completion Proof*\n👤 Username: ${uName}\n🎮 Task: ${taskTitle}\n🎁 Reward: ${reward} Coins\n*Note: Please attach/send your screenshot here in the group!*`;
 
-            // Open WhatsApp Group URL with pre-filled message text
             let waGroupUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msgText)}`;
             window.open(waGroupUrl, '_blank');
-
-            // Also open WhatsApp group invite link
             window.open('https://chat.whatsapp.com/DlTN53W5mOC4OkQb9L3Hc5?s=cl&p=a&mlu=4&ilr=4');
 
-            // Save status locally/Firestore
             db.collection("task_submissions").add({
                 userId: user.uid,
                 userName: uName,
