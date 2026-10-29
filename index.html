@@ -134,6 +134,7 @@
         .btn-red { background: linear-gradient(135deg, #ff3344, #cc0000); color: #fff; box-shadow: 0 4px 15px rgba(255, 51, 68, 0.3); }
         .btn-gold { background: var(--gold-gradient); color: #05070b; }
         .btn-gray { background: #1e293b; color: var(--text-gray); cursor: not-allowed; box-shadow: none; }
+        .btn-google { background: #fff; color: #757575; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #ddd; width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; }
         
         .deposit-grid, .withdraw-grid {
             display: grid;
@@ -297,6 +298,7 @@
             display: none;
             text-align: left;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -317,6 +319,19 @@
     </header>
 
     <div class="container">
+        <!-- Login Modal / Section -->
+        <div id="loginModal" class="modal" style="display:flex; z-index: 6000;">
+            <div class="modal-content" style="border-color: var(--gold); text-align: center;">
+                <div style="font-size: 40px; margin-bottom: 5px;">🎮</div>
+                <h3 style="color:var(--gold); margin-top:0;">Welcome to eSports RDX</h3>
+                <p style="font-size: 13px; color: var(--text-gray); margin-bottom: 20px;">Please login with your Google account to join tournaments, manage wallet, and win prizes!</p>
+                <button class="btn-google" onclick="loginWithGoogle()">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                    Continue with Google
+                </button>
+            </div>
+        </div>
+
         <div id="bannerArea">
             <img src="https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg" class="banner-img" id="dynamicBanner">
         </div>
@@ -366,18 +381,7 @@
         <div id="matchesList">Loading matches...</div>
     </div>
 
-    <!-- Login Popup Modal -->
-    <div id="loginModal" class="modal" style="z-index: 6000;">
-        <div class="modal-content" style="border-color: var(--gold); text-align: center;">
-            <div style="font-size: 40px; margin-bottom: 5px;">🎮</div>
-            <h3 style="color:var(--gold); margin-top:0;">Welcome to eSports RDX</h3>
-            <p style="font-size: 13px; color: var(--text-gray); margin-bottom: 20px;">Please login with your Google account to join tournaments, manage wallet, and win prizes!</p>
-            <button class="btn btn-green" onclick="loginWithGoogle()" style="padding: 14px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>🌐</span> Login with Google (Direct)
-            </button>
-        </div>
-    </div>
-
+    <!-- Modals -->
     <div id="setupProfileModal" class="modal" style="z-index: 5000;">
         <div class="modal-content" style="border-color: var(--green);">
             <h3 style="color:var(--green); margin-top:0;">✨ Setup Your Profile</h3>
@@ -577,6 +581,8 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        let currentUser = null;
         let monthlyVideoUrlGlobal = "";
         let currentFilterMode = 'joined';
         let lastActionTime = 0; 
@@ -592,14 +598,32 @@
             'classic squad': 'https://archive.org/download/photo_20260629/photo.jpg'
         };
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = function() {
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(() => {
+                auth.getRedirectResult().then((result) => {
+                    if (result.user) {
+                        handleSuccessfulAuth(result.user);
+                    }
+                }).catch((error) => {
+                    console.error("Redirect error:", error);
+                });
+
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        handleSuccessfulAuth(user);
+                    } else {
+                        showLoginScreen();
+                    }
+                });
+            });
+
             updateNetworkWalletState();
             applyCachedDataToUI();
 
             if (!navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'flex';
             }
-        });
+        };
 
         window.addEventListener('online', () => {
             document.getElementById('offlineModal').style.display = 'none';
@@ -655,38 +679,33 @@
             }
         }
 
-        // WebView ke liye signInWithPopup ko dobara safe tarike se use kar rahe hain taaki white screen na aaye
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).then(result => {
-                document.getElementById('loginModal').style.display = 'none';
-                checkAndSetupUserProfile(result.user);
-            }).catch(e => {
-                // Agar popup block ho ya error aaye toh fallback ke tor par error alert dikhayein
-                alert("Login Error: " + e.message);
-            });
+            auth.signInWithRedirect(provider).catch(e => alert("Login Error: " + e.message));
         }
 
         function logout() { 
-            auth.signOut();
-            localStorage.clear();
+            auth.signOut().then(() => {
+                currentUser = null;
+                localStorage.clear();
+                showLoginScreen();
+            });
+        }
+
+        function showLoginScreen() {
             document.getElementById('loginModal').style.display = 'flex';
             document.getElementById('topUserName').innerText = "Guest User";
             document.getElementById('topUserAvatar').src = "https://archive.org/download/image_5d0ed5192/image_5d0ed519~2.jpg";
             document.getElementById('matchesList').innerHTML = "<p style='color:var(--text-gray); text-align:center;'>Pehle login karein.</p>";
+            document.getElementById('walletBadgeContainer').style.display = 'none';
         }
 
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById('loginModal').style.display = 'none';
-                checkAndSetupUserProfile(user);
-            } else {
-                document.getElementById('loginModal').style.display = 'flex';
-                document.getElementById('topUserName').innerText = "Guest User";
-                loadMatches();
-                loadDailyTasks(null);
-            }
-        });
+        function handleSuccessfulAuth(user) {
+            currentUser = user;
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('walletBadgeContainer').style.display = 'flex';
+            checkAndSetupUserProfile(user);
+        }
 
         function checkAndSetupUserProfile(user) {
             db.collection("users").doc(user.uid).get().then(doc => {
