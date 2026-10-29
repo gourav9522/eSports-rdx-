@@ -596,16 +596,6 @@
             updateNetworkWalletState();
             applyCachedDataToUI();
 
-            // Handle Google Redirect Result on Page Load
-            auth.getRedirectResult().then(result => {
-                if (result.user) {
-                    document.getElementById('loginModal').style.display = 'none';
-                    checkAndSetupUserProfile(result.user);
-                }
-            }).catch(e => {
-                console.log(e.message);
-            });
-
             if (!navigator.onLine) {
                 document.getElementById('offlineModal').style.display = 'flex';
             }
@@ -665,10 +655,16 @@
             }
         }
 
+        // WebView ke liye signInWithPopup ko dobara safe tarike se use kar rahe hain taaki white screen na aaye
         function loginWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            // Using signInWithRedirect for smooth mobile / WebView login without white screen or popup block errors
-            auth.signInWithRedirect(provider).catch(e => alert(e.message));
+            auth.signInWithPopup(provider).then(result => {
+                document.getElementById('loginModal').style.display = 'none';
+                checkAndSetupUserProfile(result.user);
+            }).catch(e => {
+                // Agar popup block ho ya error aaye toh fallback ke tor par error alert dikhayein
+                alert("Login Error: " + e.message);
+            });
         }
 
         function logout() { 
